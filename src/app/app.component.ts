@@ -9,6 +9,7 @@ export class AppComponent {
   title = 'my-datepicker';
   myDate = new Date();
   rtl = false;
+  rangPicker = false;
 
   onChange(event:any) {
     console.log(event);

@@ -5,13 +5,13 @@ import { slideMotion } from './animation/slide';
 @Component({
   selector: 'app-date-picker',
   template: `
-    <div class="date-picker-wrapper" [formGroup]="form">
+     <div class="date-picker-wrapper" [formGroup]="form">
       <input
         type="text"
         formControlName="dateInput"
         (click)="toggleDatePicker()"
         [class.focus]="isOpen"
-        placeholder="Select date"
+        [placeholder]="getPlaceholder()"
       >
       <app-date-picker-popup
         *ngIf="isOpen"
@@ -20,7 +20,7 @@ import { slideMotion } from './animation/slide';
         [selectedDate]="selectedDate"
         [selectedStartDate]="selectedStartDate"
         [selectedEndDate]="selectedEndDate"
-        [isRangeMode]="isRangeMode"
+        [mode]="mode"
         [customLabels]="customLabels"
         (dateSelected)="onDateSelected($event)"
         (dateRangeSelected)="onDateRangeSelected($event)"
@@ -69,7 +69,8 @@ import { slideMotion } from './animation/slide';
 })
 export class DatePickerComponent implements ControlValueAccessor, OnInit {
   @Input() rtl = false;
-  @Input() isRangeMode = true;
+  @Input() mode: 'day' | 'month' | 'year' | 'range' = 'day';
+  @Input() format = 'YYYY/MM/DD';
   @Input() customLabels: { label: string, value: Date }[] = [];
 
   isOpen = false;
@@ -89,7 +90,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
       const date = this.parseDate(value);
       if (date) {
         this.selectedDate = date;
-        this.onChange(this.isRangeMode ? { start: date, end: date } : date);
+        this.onChange(this.mode === 'range' ? { start: date, end: date } : date);
       }
     });
   }
@@ -121,8 +122,15 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
   }
 
   updateInputValue() {
-    const formatDate = (date: Date) => date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-    if (this.isRangeMode && this.selectedStartDate && this.selectedEndDate) {
+    const formatDate = (date: Date) => {
+      let result = this.format;
+      result = result.replace('YYYY', date.getFullYear().toString());
+      result = result.replace('MM', (date.getMonth() + 1).toString().padStart(2, '0'));
+      result = result.replace('DD', date.getDate().toString().padStart(2, '0'));
+      return result;
+    };
+
+    if (this.mode === 'range' && this.selectedStartDate && this.selectedEndDate) {
       this.form.get('dateInput')?.setValue(`${formatDate(this.selectedStartDate)} - ${formatDate(this.selectedEndDate)}`);
     } else if (this.selectedDate) {
       this.form.get('dateInput')?.setValue(formatDate(this.selectedDate));
@@ -131,10 +139,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
 
   parseDate(dateString: string): Date | null {
     const parts = dateString.split('/');
-    if (parts.length === 3) {
-      const month = parseInt(parts[0]) - 1;
-      const day = parseInt(parts[1]);
-      const year = parseInt(parts[2]);
+    if (parts.length >= 2) {
+      const year = parseInt(parts[0]);
+      const month = parseInt(parts[1]) - 1;
+      const day = parts.length > 2 ? parseInt(parts[2]) : 1;
       const date = new Date(year, month, day);
       if (!isNaN(date.getTime())) {
         return date;
@@ -143,16 +151,31 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
     return null;
   }
 
+  getPlaceholder(): string {
+    switch (this.mode) {
+      case 'day':
+        return 'Select date';
+      case 'month':
+        return 'Select month';
+      case 'year':
+        return 'Select year';
+      case 'range':
+        return 'Select date range';
+      default:
+        return 'Select date';
+    }
+  }
+
   // ControlValueAccessor methods
   onChange: any = () => {};
   onTouch: any = () => {};
 
   writeValue(value: any): void {
     if (value) {
-      if (this.isRangeMode && value.start && value.end) {
+      if (this.mode === 'range' && value.start && value.end) {
         this.selectedStartDate = new Date(value.start);
         this.selectedEndDate = new Date(value.end);
-      } else if (!this.isRangeMode) {
+      } else if (this.mode !== 'range') {
         this.selectedDate = new Date(value);
       }
       this.updateInputValue();

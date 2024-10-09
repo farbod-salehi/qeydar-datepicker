@@ -18,6 +18,7 @@
     "importHelpers": true,
     "skipLibCheck": true,
     "noImplicitUseStrict": false,
+    "strictPropertyInitialization":false,
     "target": "es2020",
     "module": "es2020",
     "lib": [

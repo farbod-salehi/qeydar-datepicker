@@ -1,5 +1,9 @@
 <button (click)="changeDirection()">to rtl</button>
+<button (click)="rangPicker = !rangPicker">rangpicker on/off</button>
 <div [dir]="rtl? 'rtl': 'ltr'">
-    <app-date-picker [rtl]="rtl" [(ngModel)]="myDate"
-        (ngModelChange)="onChange($event)"></app-date-picker>
+    <app-date-picker
+     [rtl]="rtl"
+     [(ngModel)]="myDate"
+     [mode]="rangPicker? 'range': 'day'"
+    (ngModelChange)="onChange($event)"></app-date-picker>
 </div>

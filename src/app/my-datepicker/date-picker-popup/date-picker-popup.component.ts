@@ -1,28 +1,36 @@
 // date-picker-popup.component.ts
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef,AfterViewInit, ViewChild } from '@angular/core';
 
 @Component({
   selector: 'app-date-picker-popup',
   template: `
     <div class="date-picker-popup" [class.rtl]="rtl">
-      <div class="period-selector">
-        <button *ngFor="let period of periods" 
-                [class.active]="selectedPeriod === period.value"
-                (click)="selectPeriod(period.value)">
-          {{ period.label }}
-          <span *ngIf="period.arrow" class="arrow">→</span>
+      <div *ngIf="mode === 'range'" class="period-selector">
+        <!-- ... (keep existing period-selector code) ... -->
+      </div>
+      <div *ngIf="mode !== 'range'" class="month-selector" #monthSelector>
+        <button 
+          *ngFor="let month of monthListNum" 
+          [id]="'month_'+month"
+          [class.active]="isActiveMonth(month)"
+          (click)="selectMonth(month)"
+        >
+          {{ getMonthName(month) }}
         </button>
       </div>
       <div class="calendar">
         <div class="header">
           <button (click)="prevMonth()">&lt;</button>
-          <span class="month-name">{{ currentMonth | uppercase }}</span>
+          <span class="month-year">
+            <span class="month-name" (click)="showMonthSelector()">{{ currentMonth | uppercase }}</span>
+            <span class="year" (click)="showYearSelector()">{{ currentYear }}</span>
+          </span>
           <button (click)="nextMonth()">&gt;</button>
         </div>
-        <div class="weekdays">
+        <div *ngIf="viewMode === 'days'" class="weekdays">
           <span *ngFor="let day of weekDays">{{ day }}</span>
         </div>
-        <div class="days">
+        <div *ngIf="viewMode === 'days'" class="days">
           <button *ngFor="let day of days" 
                   [class.different-month]="day.getMonth() !== currentDate.getMonth()"
                   [class.selected]="isSelected(day)"
@@ -32,6 +40,20 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
                   (mouseenter)="onMouseEnter(day,$event)">
             {{ day.getDate() }}
             <span *ngIf="isToday(day)" class="today">.</span>
+          </button>
+        </div>
+        <div *ngIf="viewMode === 'months'" class="months">
+          <button *ngFor="let month of monthListNum" 
+                  [class.selected]="month === currentDate.getMonth() + 1"
+                  (click)="selectMonth(month)">
+            {{ getMonthName(month) }}
+          </button>
+        </div>
+        <div *ngIf="viewMode === 'years'" class="years">
+          <button *ngFor="let year of yearList" 
+                  [class.selected]="year === currentDate.getFullYear()"
+                  (click)="selectYear(year)">
+            {{ year }}
           </button>
         </div>
       </div>
@@ -52,14 +74,23 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
       top: 107%;
       left: 0;
       z-index: 1000;
-      width: 400px;
+      width: fit-content;
       border: 1px solid #ddd;
     }
-    .period-selector {
+    .period-selector,.month-selector {
       width: 150px;
       border-inline-end: 1px solid #e0e0e0;
     }
-    .period-selector button {
+    .month-selector {
+      max-height: 19rem;
+      overflow: auto; /* Allow scrolling */
+      scrollbar-width: none; /* For Firefox */
+      -ms-overflow-style: none; /* For Internet Explorer and Edge */
+    }
+    .month-selector::-webkit-scrollbar {
+      display: none; /* For Chrome, Safari, and Opera */
+    }
+    .period-selector button,.month-selector button {
       display: flex;
       justify-content: space-between;
       font-size: 14px;
@@ -73,10 +104,10 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
       color: #555;
       transition: background-color 0.3s;
     }
-    .period-selector button:hover {
+    .period-selector button:hover,.month-selector button:hover {
       background-color: #e6f7ff;
     }
-    .period-selector button.active {
+    .period-selector button.active,.month-selector button.active{
       background-color: #bfeaff;
       color: #0175e0;
       width: 100%;
@@ -88,6 +119,7 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
       padding: 15px;
       flex-grow: 1;
       background: #FAFAFB;
+      width: 15rem;
     }
     .header {
       display: flex;
@@ -155,6 +187,29 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
       font-size: 36px;
       color: mediumpurple;
     }
+    .month-year {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .month-name, .year {
+      margin: 0 5px;
+    }
+    .months, .years {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+    .months button, .years button {
+      padding: 10px;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+    .months button.selected, .years button.selected {
+      background-color: #1890ff;
+      color: white;
+    }
     // rtl
     :dir(rtl) .date-picker-popup, .rtl.date-picker-popup{
       right: 0 !important;
@@ -165,15 +220,17 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
     }
   `]
 })
-export class DatePickerPopupComponent implements OnInit, OnChanges {
+export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() rtl = false;
   @Input() selectedDate: Date | null = null;
   @Input() selectedStartDate: Date | null = null;
   @Input() selectedEndDate: Date | null = null;
-  @Input() isRangeMode = false;
+  @Input() mode: 'day' | 'month' | 'year' | 'range' = 'day';
   @Input() customLabels: { label: string, value: Date }[] = [];
   @Output() dateSelected = new EventEmitter<Date>();
   @Output() dateRangeSelected = new EventEmitter<{ start: Date, end: Date }>();
+
+  @ViewChild('monthSelector') monthSelector: ElementRef;
 
   weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   periods = [
@@ -189,15 +246,25 @@ export class DatePickerPopupComponent implements OnInit, OnChanges {
   currentYear: number = 0;
   selectedPeriod: string = '';
   tempEndDate: Date | null = null;
+  monthListNum = Array.from({ length: 12 }, (_, i) => i + 1);
+  yearList: number[] = [];
+  viewMode: 'days' | 'months' | 'years' = 'days';
+
+  constructor(public el: ElementRef) {}
 
   ngOnInit() {
     this.generateCalendar();
+    this.generateYearList();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['selectedDate'] || changes['selectedStartDate'] || changes['selectedEndDate']) {
+    if (changes['selectedDate'] || changes['selectedStartDate'] || changes['selectedEndDate'] || changes['mode']) {
       this.generateCalendar();
     }
+  }
+
+  ngAfterViewInit() {
+    this.scrollToSelectedMonth();
   }
 
   generateCalendar(month: number = this.currentDate.getMonth(), year: number = this.currentDate.getFullYear()) {
@@ -217,6 +284,44 @@ export class DatePickerPopupComponent implements OnInit, OnChanges {
     for (let i = 1; i <= remainingDays; i++) {
       this.days.push(new Date(year, month + 1, i));
     }
+
+    this.currentYear = year;
+  }
+
+  generateYearList() {
+    const currentYear = new Date().getFullYear();
+    this.yearList = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i);
+  }
+
+  scrollToSelectedMonth(month: number|null = null) {
+    let monthNum = month || this.selectedDate?.getMonth()! + 1;
+    if (this.monthSelector && this.selectedDate) {
+      const selectedMonthElement = this.monthSelector.nativeElement.querySelector(`#month_${monthNum}`);
+      if (selectedMonthElement) {
+        selectedMonthElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }
+
+  showMonthSelector() {
+    this.viewMode = 'months';
+  }
+
+  showYearSelector() {
+    this.viewMode = 'years';
+  }
+
+  selectYear(year: number) {
+    this.currentDate.setFullYear(year);
+    this.viewMode = 'months';
+    this.generateCalendar(this.currentDate.getMonth(), year);
+  }
+
+  selectMonth(month: number) {
+    this.currentDate.setMonth(month);
+    this.viewMode = 'days';
+    this.generateCalendar(this.currentDate.getMonth(), this.currentDate.getFullYear());
+    this.scrollToSelectedMonth(month);
   }
 
   prevMonth() {
@@ -264,7 +369,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges {
   }
 
   selectDate(date: Date) {
-    if (this.isRangeMode) {
+    if (this.mode === 'range') {
       if (!this.selectedStartDate || (this.selectedStartDate && this.selectedEndDate) || date < this.selectedStartDate) {
         this.selectedStartDate = date;
         this.selectedEndDate = null;
@@ -278,7 +383,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges {
   }
 
   isSelected(date: Date): boolean|any {
-    if (this.isRangeMode) {
+    if (this.mode === 'range') {
       return (this.selectedStartDate && date.toDateString() === this.selectedStartDate.toDateString()) ||
              (this.selectedEndDate && date.toDateString() === this.selectedEndDate.toDateString()) ||
              (this.tempEndDate && date.toDateString() === this.tempEndDate.toDateString());
@@ -299,5 +404,14 @@ export class DatePickerPopupComponent implements OnInit, OnChanges {
 
   onMouseEnter(date: Date, e:Event) {
     this.tempEndDate = date;
+  }
+
+  getMonthName(month: number): string {
+    let date = new Date(this.currentDate.getFullYear(), month, 1);
+    return date.toLocaleString('default', { month: 'long' });
+  }
+
+  isActiveMonth(month: number): boolean {
+    return this.currentDate.getMonth() == month;
   }
 }
