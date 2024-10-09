@@ -16,6 +16,8 @@
     "experimentalDecorators": true,
     "moduleResolution": "node",
     "importHelpers": true,
+    "skipLibCheck": true,
+    "noImplicitUseStrict": false,
     "target": "es2020",
     "module": "es2020",
     "lib": [

@@ -7,4 +7,13 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'my-datepicker';
+  myDate = new Date();
+  rtl = false;
+
+  onChange(event:any) {
+    console.log(event);
+  }
+  changeDirection() {
+    this.rtl = !this.rtl;
+  }
 }
