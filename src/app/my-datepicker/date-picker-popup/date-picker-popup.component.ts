@@ -1,12 +1,17 @@
-// date-picker-popup.component.ts
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef,AfterViewInit, ViewChild } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { DateAdapter, JalaliDateAdapter } from '../date-adapter';
 
 @Component({
   selector: 'app-date-picker-popup',
   template: `
     <div class="date-picker-popup" [class.rtl]="rtl">
       <div *ngIf="mode === 'range'" class="period-selector">
-        <!-- ... (keep existing period-selector code) ... -->
+        <button *ngFor="let period of periods" 
+                [class.active]="selectedPeriod === period.value"
+                (click)="selectPeriod(period.value)">
+          {{ period.label }}
+          <span *ngIf="period.arrow" class="arrow">→</span>
+        </button>
       </div>
       <div *ngIf="mode !== 'range'" class="month-selector" #monthSelector>
         <button 
@@ -22,36 +27,36 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
         <div class="header">
           <button (click)="prevMonth()">&lt;</button>
           <span class="month-year">
-            <span class="month-name" (click)="showMonthSelector()">{{ currentMonth | uppercase }}</span>
-            <span class="year" (click)="showYearSelector()">{{ currentYear }}</span>
+            <span class="month-name" (click)="showMonthSelector()">{{ getCurrentMonthName() }}</span>
+            <span class="year" (click)="showYearSelector()">{{ getCurrentYear() }}</span>
           </span>
           <button (click)="nextMonth()">&gt;</button>
         </div>
         <div *ngIf="viewMode === 'days'" class="weekdays">
-          <span *ngFor="let day of weekDays">{{ day }}</span>
+          <span *ngFor="let day of getWeekDays()">{{ day }}</span>
         </div>
         <div *ngIf="viewMode === 'days'" class="days">
           <button *ngFor="let day of days" 
-                  [class.different-month]="day.getMonth() !== currentDate.getMonth()"
+                  [class.different-month]="!isSameMonth(day, currentDate)"
                   [class.selected]="isSelected(day)"
                   [class.in-range]="isInRange(day)"
                   [class.today]="isToday(day)"
                   (click)="selectDate(day)"
                   (mouseenter)="onMouseEnter(day,$event)">
-            {{ day.getDate() }}
+            {{ dateAdapter.getDate(day) }}
             <span *ngIf="isToday(day)" class="today">.</span>
           </button>
         </div>
         <div *ngIf="viewMode === 'months'" class="months">
           <button *ngFor="let month of monthListNum" 
-                  [class.selected]="month === currentDate.getMonth() + 1"
+                  [class.selected]="month === dateAdapter.getMonth(currentDate) + 1"
                   (click)="selectMonth(month)">
             {{ getMonthName(month) }}
           </button>
         </div>
         <div *ngIf="viewMode === 'years'" class="years">
           <button *ngFor="let year of yearList" 
-                  [class.selected]="year === currentDate.getFullYear()"
+                  [class.selected]="year === dateAdapter.getYear(currentDate)"
                   (click)="selectYear(year)">
             {{ year }}
           </button>
@@ -227,12 +232,13 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() selectedEndDate: Date | null = null;
   @Input() mode: 'day' | 'month' | 'year' | 'range' = 'day';
   @Input() customLabels: { label: string, value: Date }[] = [];
+  @Input() dateAdapter: DateAdapter<Date> = new JalaliDateAdapter();
   @Output() dateSelected = new EventEmitter<Date>();
   @Output() dateRangeSelected = new EventEmitter<{ start: Date, end: Date }>();
 
   @ViewChild('monthSelector') monthSelector: ElementRef;
 
-  weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  weekDays: string[] = [];
   periods = [
     { label: 'Last hour', value: 'hour' },
     { label: 'Last day', value: 'day' },
@@ -241,9 +247,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     { label: 'Custom', value: 'custom' }
   ];
   days: Date[] = [];
-  currentDate = new Date();
-  currentMonth: string = '';
-  currentYear: number = 0;
+  currentDate: Date;
   selectedPeriod: string = '';
   tempEndDate: Date | null = null;
   monthListNum = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -253,8 +257,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   constructor(public el: ElementRef) {}
 
   ngOnInit() {
+    this.currentDate = this.dateAdapter.today();
     this.generateCalendar();
     this.generateYearList();
+    this.weekDays = this.dateAdapter.getDayOfWeekNames('short');
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -267,29 +273,19 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.scrollToSelectedMonth();
   }
 
-  generateCalendar(month: number = this.currentDate.getMonth(), year: number = this.currentDate.getFullYear()) {
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    this.currentMonth = firstDay.toLocaleString('default', { month: 'long' });
-
+  generateCalendar() {
+    const firstDayOfMonth = this.dateAdapter.startOfMonth(this.currentDate);
+    const lastDayOfMonth = this.dateAdapter.endOfMonth(this.currentDate);
+    const startDate = this.dateAdapter.startOfWeek(firstDayOfMonth);
+    
     this.days = [];
-    for (let i = 0; i < firstDay.getDay(); i++) {
-      const prevMonthDay = new Date(year, month, -i);
-      this.days.unshift(prevMonthDay);
+    for (let i = 0; i < 42; i++) {
+      this.days.push(this.dateAdapter.addDays(startDate, i));
     }
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      this.days.push(new Date(year, month, i));
-    }
-    const remainingDays = 42 - this.days.length;
-    for (let i = 1; i <= remainingDays; i++) {
-      this.days.push(new Date(year, month + 1, i));
-    }
-
-    this.currentYear = year;
   }
 
   generateYearList() {
-    const currentYear = new Date().getFullYear();
+    const currentYear = this.dateAdapter.getYear(this.dateAdapter.today());
     this.yearList = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i);
   }
 
@@ -312,26 +308,16 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   selectYear(year: number) {
-    this.currentDate.setFullYear(year);
+    this.currentDate = this.dateAdapter.createDate(year, this.dateAdapter.getMonth(this.currentDate), 1);
     this.viewMode = 'months';
-    this.generateCalendar(this.currentDate.getMonth(), year);
+    this.generateCalendar();
   }
 
   selectMonth(month: number) {
-    this.currentDate.setMonth(month);
+    this.currentDate = this.dateAdapter.createDate(this.dateAdapter.getYear(this.currentDate), month - 1, 1);
     this.viewMode = 'days';
-    this.generateCalendar(this.currentDate.getMonth(), this.currentDate.getFullYear());
+    this.generateCalendar();
     this.scrollToSelectedMonth(month);
-  }
-
-  prevMonth() {
-    this.currentDate.setMonth(this.currentDate.getMonth() - 1);
-    this.generateCalendar(this.currentDate.getMonth(), this.currentDate.getFullYear());
-  }
-
-  nextMonth() {
-    this.currentDate.setMonth(this.currentDate.getMonth() + 1);
-    this.generateCalendar(this.currentDate.getMonth(), this.currentDate.getFullYear());
   }
 
   selectPeriod(period: string) {
@@ -370,7 +356,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   selectDate(date: Date) {
     if (this.mode === 'range') {
-      if (!this.selectedStartDate || (this.selectedStartDate && this.selectedEndDate) || date < this.selectedStartDate) {
+      if (!this.selectedStartDate || (this.selectedStartDate && this.selectedEndDate) || this.dateAdapter.isBefore(date, this.selectedStartDate)) {
         this.selectedStartDate = date;
         this.selectedEndDate = null;
       } else {
@@ -382,36 +368,62 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     }
   }
 
-  isSelected(date: Date): boolean|any {
+  prevMonth() {
+    this.currentDate = this.dateAdapter.addMonths(this.currentDate, -1);
+    this.generateCalendar();
+  }
+
+  nextMonth() {
+    this.currentDate = this.dateAdapter.addMonths(this.currentDate, 1);
+    this.generateCalendar();
+  }
+
+  isSelected(date: Date): boolean {
     if (this.mode === 'range') {
-      return (this.selectedStartDate && date.toDateString() === this.selectedStartDate.toDateString()) ||
-             (this.selectedEndDate && date.toDateString() === this.selectedEndDate.toDateString()) ||
-             (this.tempEndDate && date.toDateString() === this.tempEndDate.toDateString());
+      return (this.selectedStartDate && this.dateAdapter.isSameDay(date, this.selectedStartDate)) ||
+             (this.selectedEndDate && this.dateAdapter.isSameDay(date, this.selectedEndDate));
     } else {
-      return this.selectedDate && date.toDateString() === this.selectedDate.toDateString();
+      return this.selectedDate && this.dateAdapter.isSameDay(date, this.selectedDate);
     }
   }
 
-  isInRange(date: Date): boolean|any {
-    // @ts-ignore
-    return this.isRangeMode && this.selectedStartDate && (this.selectedEndDate || this.tempEndDate) && date > this.selectedStartDate && (date < this.selectedEndDate || date < this.tempEndDate);
+  isInRange(date: Date): boolean {
+    return this.mode === 'range' && this.selectedStartDate && (this.selectedEndDate || this.tempEndDate) &&
+           this.dateAdapter.isAfter(date, this.selectedStartDate) &&
+           (this.dateAdapter.isBefore(date, this.selectedEndDate || this.tempEndDate));
   }
 
-  isToday(date: Date) {
-    let isToday;
-    return date.toDateString() == new Date().toDateString();
+  isToday(date: Date): boolean {
+    return this.dateAdapter.isSameDay(date, this.dateAdapter.today());
   }
 
-  onMouseEnter(date: Date, e:Event) {
-    this.tempEndDate = date;
+  onMouseEnter(date: Date, event: Event) {
+    if (this.mode === 'range' && this.selectedStartDate && !this.selectedEndDate) {
+      this.tempEndDate = date;
+    }
   }
 
   getMonthName(month: number): string {
-    let date = new Date(this.currentDate.getFullYear(), month, 1);
-    return date.toLocaleString('default', { month: 'long' });
+    return this.dateAdapter.getMonthNames('long')[month - 1];
+  }
+
+  getCurrentMonthName(): string {
+    return this.dateAdapter.getMonthNames('long')[this.dateAdapter.getMonth(this.currentDate)];
+  }
+
+  getCurrentYear(): number {
+    return this.dateAdapter.getYear(this.currentDate);
+  }
+
+  getWeekDays(): string[] {
+    return this.weekDays;
   }
 
   isActiveMonth(month: number): boolean {
-    return this.currentDate.getMonth() == month;
+    return this.dateAdapter.getMonth(this.currentDate) === month - 1;
+  }
+
+  isSameMonth(date1: Date, date2: Date): boolean {
+    return this.dateAdapter.isSameMonth(date1, date2);
   }
 }

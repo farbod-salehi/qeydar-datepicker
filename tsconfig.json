@@ -19,6 +19,7 @@
     "skipLibCheck": true,
     "noImplicitUseStrict": false,
     "strictPropertyInitialization":false,
+    "strictNullChecks": false,
     "target": "es2020",
     "module": "es2020",
     "lib": [

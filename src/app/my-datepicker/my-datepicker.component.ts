@@ -1,11 +1,12 @@
 import { Component, ElementRef, HostListener, forwardRef, Input, OnInit } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup } from '@angular/forms';
 import { slideMotion } from './animation/slide';
+import { DateAdapter, JalaliDateAdapter } from './date-adapter';
 
 @Component({
   selector: 'app-date-picker',
   template: `
-     <div class="date-picker-wrapper" [formGroup]="form">
+    <div class="date-picker-wrapper" [formGroup]="form">
       <input
         type="text"
         formControlName="dateInput"
@@ -22,6 +23,7 @@ import { slideMotion } from './animation/slide';
         [selectedEndDate]="selectedEndDate"
         [mode]="mode"
         [customLabels]="customLabels"
+        [dateAdapter]="dateAdapter"
         (dateSelected)="onDateSelected($event)"
         (dateRangeSelected)="onDateRangeSelected($event)"
       ></app-date-picker-popup>
@@ -70,8 +72,9 @@ import { slideMotion } from './animation/slide';
 export class DatePickerComponent implements ControlValueAccessor, OnInit {
   @Input() rtl = false;
   @Input() mode: 'day' | 'month' | 'year' | 'range' = 'day';
-  @Input() format = 'YYYY/MM/DD';
+  @Input() format = 'yyyy/MM/dd';
   @Input() customLabels: { label: string, value: Date }[] = [];
+  @Input() dateAdapter: DateAdapter<Date> = new JalaliDateAdapter();
 
   isOpen = false;
   selectedDate: Date | null = null;
@@ -87,7 +90,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
 
   ngOnInit() {
     this.form.get('dateInput')?.valueChanges.subscribe(value => {
-      const date = this.parseDate(value);
+      const date = this.dateAdapter.parse(value, this.format);
       if (date) {
         this.selectedDate = date;
         this.onChange(this.mode === 'range' ? { start: date, end: date } : date);
@@ -122,33 +125,13 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
   }
 
   updateInputValue() {
-    const formatDate = (date: Date) => {
-      let result = this.format;
-      result = result.replace('YYYY', date.getFullYear().toString());
-      result = result.replace('MM', (date.getMonth() + 1).toString().padStart(2, '0'));
-      result = result.replace('DD', date.getDate().toString().padStart(2, '0'));
-      return result;
-    };
-
     if (this.mode === 'range' && this.selectedStartDate && this.selectedEndDate) {
-      this.form.get('dateInput')?.setValue(`${formatDate(this.selectedStartDate)} - ${formatDate(this.selectedEndDate)}`);
+      this.form.get('dateInput')?.setValue(
+        `${this.dateAdapter.format(this.selectedStartDate, this.format)} - ${this.dateAdapter.format(this.selectedEndDate, this.format)}`
+      );
     } else if (this.selectedDate) {
-      this.form.get('dateInput')?.setValue(formatDate(this.selectedDate));
+      this.form.get('dateInput')?.setValue(this.dateAdapter.format(this.selectedDate, this.format));
     }
-  }
-
-  parseDate(dateString: string): Date | null {
-    const parts = dateString.split('/');
-    if (parts.length >= 2) {
-      const year = parseInt(parts[0]);
-      const month = parseInt(parts[1]) - 1;
-      const day = parts.length > 2 ? parseInt(parts[2]) : 1;
-      const date = new Date(year, month, day);
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-    }
-    return null;
   }
 
   getPlaceholder(): string {
@@ -173,10 +156,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
   writeValue(value: any): void {
     if (value) {
       if (this.mode === 'range' && value.start && value.end) {
-        this.selectedStartDate = new Date(value.start);
-        this.selectedEndDate = new Date(value.end);
+        this.selectedStartDate = value.start;
+        this.selectedEndDate = value.end;
       } else if (this.mode !== 'range') {
-        this.selectedDate = new Date(value);
+        this.selectedDate = value;
       }
       this.updateInputValue();
     }
