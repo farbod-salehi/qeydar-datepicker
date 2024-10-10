@@ -1,7 +1,7 @@
-import { Component, ElementRef, HostListener, forwardRef, Input, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, forwardRef, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup } from '@angular/forms';
 import { slideMotion } from './animation/slide';
-import { DateAdapter, JalaliDateAdapter } from './date-adapter';
+import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
 
 @Component({
   selector: 'app-date-picker',
@@ -23,7 +23,7 @@ import { DateAdapter, JalaliDateAdapter } from './date-adapter';
         [selectedEndDate]="selectedEndDate"
         [mode]="mode"
         [customLabels]="customLabels"
-        [dateAdapter]="dateAdapter"
+        [calendarType]="calendarType"
         (dateSelected)="onDateSelected($event)"
         (dateRangeSelected)="onDateRangeSelected($event)"
       ></app-date-picker-popup>
@@ -69,18 +69,19 @@ import { DateAdapter, JalaliDateAdapter } from './date-adapter';
   ],
   animations: [slideMotion]
 })
-export class DatePickerComponent implements ControlValueAccessor, OnInit {
+export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChanges {
   @Input() rtl = false;
   @Input() mode: 'day' | 'month' | 'year' | 'range' = 'day';
   @Input() format = 'yyyy/MM/dd';
   @Input() customLabels: { label: string, value: Date }[] = [];
-  @Input() dateAdapter: DateAdapter<Date> = new JalaliDateAdapter();
+  @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
 
   isOpen = false;
   selectedDate: Date | null = null;
   selectedStartDate: Date | null = null;
   selectedEndDate: Date | null = null;
   form: FormGroup;
+  dateAdapter: DateAdapter<Date>;
 
   constructor(private elementRef: ElementRef, private fb: FormBuilder) {
     this.form = this.fb.group({
@@ -89,6 +90,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
   }
 
   ngOnInit() {
+    this.setDateAdapter();
     this.form.get('dateInput')?.valueChanges.subscribe(value => {
       const date = this.dateAdapter.parse(value, this.format);
       if (date) {
@@ -96,6 +98,17 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
         this.onChange(this.mode === 'range' ? { start: date, end: date } : date);
       }
     });
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['calendarType']) {
+      this.setDateAdapter();
+      this.updateInputValue();
+    }
+  }
+
+  setDateAdapter() {
+    this.dateAdapter = this.calendarType === 'jalali' ? new JalaliDateAdapter() : new GregorianDateAdapter();
   }
 
   @HostListener('document:click', ['$event'])
@@ -156,10 +169,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit {
   writeValue(value: any): void {
     if (value) {
       if (this.mode === 'range' && value.start && value.end) {
-        this.selectedStartDate = value.start;
-        this.selectedEndDate = value.end;
+        this.selectedStartDate = this.dateAdapter.parse(value.start, this.format);
+        this.selectedEndDate = this.dateAdapter.parse(value.end, this.format);
       } else if (this.mode !== 'range') {
-        this.selectedDate = value;
+        this.selectedDate = this.dateAdapter.parse(value, this.format);
       }
       this.updateInputValue();
     }

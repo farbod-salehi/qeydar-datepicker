@@ -3,6 +3,7 @@
 <div [dir]="rtl? 'rtl': 'ltr'">
     <app-date-picker
      [rtl]="rtl"
+     [calendarType]="rtl? 'jalali':'georgian'"
      [(ngModel)]="myDate"
      [mode]="rangPicker? 'range': 'day'"
     (ngModelChange)="onChange($event)"></app-date-picker>
