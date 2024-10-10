@@ -13,7 +13,7 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
           <span *ngIf="period.arrow" class="arrow">→</span>
         </button>
       </div>
-      <div *ngIf="mode !== 'range'" class="month-selector" #monthSelector>
+      <div *ngIf="mode !== 'range'" class="month-selector" #itemSelector>
         <ng-container *ngIf="viewMode != 'years';else yearSelector">
           <button 
             *ngFor="let month of monthListNum" 
@@ -91,7 +91,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Output() dateRangeSelected = new EventEmitter<{ start: Date, end: Date }>();
   @Output() closePicker = new EventEmitter<void>();
 
-  @ViewChild('monthSelector') monthSelector: ElementRef;
+  @ViewChild('itemSelector') itemSelector: ElementRef;
 
   dateAdapter: DateAdapter<Date>;
   weekDays: string[] = [];
@@ -166,8 +166,8 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       let currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
       itemId = id || currentRange.start;
     }
-    if (this.monthSelector && this.selectedDate) {
-      const selectedMonthElement = this.monthSelector.nativeElement.querySelector(`#selector_${itemId}`);
+    if (this.itemSelector && this.selectedDate) {
+      const selectedMonthElement = this.itemSelector.nativeElement.querySelector(`#selector_${itemId}`);
       if (selectedMonthElement) {
         selectedMonthElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -319,7 +319,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   generateYearList() {
-    const currentYear = this.dateAdapter.getYear(this.dateAdapter.today());
+    const currentYear = this.dateAdapter.getYear(this.selectedDate);
     const currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
     this.yearList = Array.from({length: 15}, (_, i) => currentRange.start + i);
   }

@@ -6,5 +6,7 @@
      [calendarType]="rtl? 'jalali':'georgian'"
      [(ngModel)]="myDate"
      [mode]="rangPicker? 'range': 'day'"
+     [format]="'yyyy/MM/dd'"
+     [mode]="'month'"
     (ngModelChange)="onChange($event)"></app-date-picker>
 </div>

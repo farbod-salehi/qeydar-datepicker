@@ -136,20 +136,20 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   }
 
   onDateSelected(date: Date) {
-    this.selectedDate = date;
-    this.updateInputValue();
-    this.isOpen = false;  // Close the popup only when a day is selected
-    this.onChange(date);
+    const formattedDate = this.dateAdapter.format(date, this.format);
+    this.form.get('dateInput')?.setValue(formattedDate);
+    this.onChange(formattedDate);
+    this.isOpen = false;
   }
 
   onDateRangeSelected(dateRange: { start: Date, end: Date }) {
-    this.selectedStartDate = dateRange.start;
-    this.selectedEndDate = dateRange.end;
-    this.updateInputValue();
-    if (this.selectedStartDate && this.selectedEndDate) {
-      this.isOpen = false;  // Close the popup only when both start and end dates are selected
-      this.onChange(dateRange);
-    }
+    const format = this.format;
+    const formattedStart = this.dateAdapter.format(dateRange.start, format);
+    const formattedEnd = this.dateAdapter.format(dateRange.end, format);
+    const formattedRange = `${formattedStart} - ${formattedEnd}`;
+    this.form.get('dateInput')?.setValue(formattedRange);
+    this.onChange(formattedRange);
+    this.isOpen = false;
   }
 
   updateInputValue() {
@@ -182,26 +182,41 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   onTouch: any = () => {};
 
   writeValue(value: any): void {
+    // if (value) {
+    //   if (this.mode === 'range' && typeof value === 'object' && value.start && value.end) {
+    //     const start = this.dateAdapter.parse(value.start, this.format);
+    //     const end = this.dateAdapter.parse(value.end, this.format);
+    //     if (start && end) {
+    //       this.selectedStartDate = start;
+    //       this.selectedEndDate = end;
+    //       this.updateInputValue();
+    //     }
+    //   } else if (this.mode !== 'range') {
+    //     const date = this.dateAdapter.parse(value, this.format);
+    //     if (date) {
+    //       this.selectedDate = date;
+    //       this.updateInputValue();
+    //     }
+    //   }
+    // } else {
+    //   this.selectedDate = null;
+    //   this.selectedStartDate = null;
+    //   this.selectedEndDate = null;
+    //   this.form.get('dateInput')?.setValue('');
+    // }
     if (value) {
       if (this.mode === 'range' && typeof value === 'object' && value.start && value.end) {
-        const start = this.dateAdapter.parse(value.start, this.format);
-        const end = this.dateAdapter.parse(value.end, this.format);
-        if (start && end) {
-          this.selectedStartDate = start;
-          this.selectedEndDate = end;
-          this.updateInputValue();
-        }
+        const format = this.format;
+        const formattedStart = this.dateAdapter.format(this.dateAdapter.parse(value.start, format), format);
+        const formattedEnd = this.dateAdapter.format(this.dateAdapter.parse(value.end, format), format);
+        const formattedRange = `${formattedStart} - ${formattedEnd}`;
+        this.form.get('dateInput')?.setValue(formattedRange);
       } else if (this.mode !== 'range') {
-        const date = this.dateAdapter.parse(value, this.format);
-        if (date) {
-          this.selectedDate = date;
-          this.updateInputValue();
-        }
+        const format = this.format;
+        const formattedDate = this.dateAdapter.format(this.dateAdapter.parse(value, format), format);
+        this.form.get('dateInput')?.setValue(formattedDate);
       }
     } else {
-      this.selectedDate = null;
-      this.selectedStartDate = null;
-      this.selectedEndDate = null;
       this.form.get('dateInput')?.setValue('');
     }
   }
