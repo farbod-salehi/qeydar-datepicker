@@ -14,13 +14,25 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
         </button>
       </div>
       <div *ngIf="mode !== 'range'" class="month-selector" #monthSelector>
-        <button 
-          *ngFor="let month of monthListNum" 
-          [id]="'month_'+month"
-          [class.active]="isActiveMonth(month)"
-          (click)="selectMonth(month, false)">
-          {{ getMonthName(month) }}
-        </button>
+        <ng-container *ngIf="viewMode != 'years';else yearSelector">
+          <button 
+            *ngFor="let month of monthListNum" 
+            [id]="'selector_'+month"
+            [class.active]="isActiveMonth(month)"
+            (click)="selectMonth(month, false)">
+            {{ getMonthName(month) }}
+          </button>
+        </ng-container>
+        <ng-template #yearSelector>
+          <button
+            *ngFor="let yearRange of yearRanges" 
+            [id]="'selector_'+yearRange.start"
+            [class.active]="isActiveYearRange(yearRange.start)"
+            (click)="selectYearRange(yearRange.start)"
+          >
+            {{ yearRange.start }} - {{ yearRange.end }}
+          </button>
+        </ng-template>
       </div>
       <div class="calendar">
         <div class="header">
@@ -31,29 +43,31 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
           </span>
           <button (click)="nextMonth()">&gt;</button>
         </div>
-        <div *ngIf="viewMode === 'days'" class="weekdays">
-          <span *ngFor="let day of getWeekDays()">{{ day }}</span>
+        <div *ngIf="mode == 'day'">
+          <div *ngIf="viewMode === 'days'" class="weekdays">
+            <span *ngFor="let day of getWeekDays()">{{ day }}</span>
+          </div>
+          <div *ngIf="viewMode === 'days'" class="days">
+            <button *ngFor="let day of days" 
+                    [class.different-month]="!isSameMonth(day, currentDate)"
+                    [class.selected]="isSelected(day)"
+                    [class.in-range]="isInRange(day)"
+                    [class.today]="isToday(day)"
+                    (click)="selectDate(day)"
+                    (mouseenter)="onMouseEnter(day,$event)">
+              {{ dateAdapter.getDate(day) }}
+              <!-- <span *ngIf="isToday(day)" class="today">.</span> -->
+            </button>
+          </div>
         </div>
-        <div *ngIf="viewMode === 'days'" class="days">
-          <button *ngFor="let day of days" 
-                  [class.different-month]="!isSameMonth(day, currentDate)"
-                  [class.selected]="isSelected(day)"
-                  [class.in-range]="isInRange(day)"
-                  [class.today]="isToday(day)"
-                  (click)="selectDate(day)"
-                  (mouseenter)="onMouseEnter(day,$event)">
-            {{ dateAdapter.getDate(day) }}
-            <!-- <span *ngIf="isToday(day)" class="today">.</span> -->
-          </button>
-        </div>
-        <div *ngIf="viewMode === 'months'" class="months">
+        <div *ngIf="viewMode === 'months' || mode == 'month'" class="months">
           <button *ngFor="let month of monthListNum" 
                   [class.selected]="month === dateAdapter.getMonth(currentDate) + 1"
                   (click)="selectMonth(month)">
             {{ getMonthName(month) }}
           </button>
         </div>
-        <div *ngIf="viewMode === 'years'" class="years">
+        <div *ngIf="viewMode === 'years' || mode == 'year'" class="years">
           <button *ngFor="let year of yearList" 
                   [class.selected]="year === dateAdapter.getYear(currentDate)"
                   (click)="selectYear(year)">
@@ -63,169 +77,7 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
       </div>
     </div>
   `,
-  styles: [`
-    :host * {
-      font-family: 'vazirmatn';
-      font-weight: 500;
-    }
-    .date-picker-popup {
-      display: flex;
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      overflow: hidden;
-      position: absolute;
-      top: 107%;
-      left: 0;
-      z-index: 1000;
-      width: fit-content;
-      border: 1px solid #ddd;
-    }
-    .period-selector,.month-selector {
-      width: 150px;
-      border-inline-end: 1px solid #e0e0e0;
-    }
-    .month-selector {
-      max-height: 19rem;
-      overflow: auto; /* Allow scrolling */
-      scrollbar-width: none; /* For Firefox */
-      -ms-overflow-style: none; /* For Internet Explorer and Edge */
-    }
-    .month-selector::-webkit-scrollbar {
-      display: none; /* For Chrome, Safari, and Opera */
-    }
-    .period-selector button,.month-selector button {
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-      width: 100%;
-      padding: 10px;
-      text-align: start;
-      border: none;
-      background: none;
-      cursor: pointer;
-      border-block-end: 1px solid #ddd;
-      color: #555;
-      transition: background-color 0.3s;
-    }
-    .period-selector button:hover,.month-selector button:hover {
-      background-color: #e6f7ff;
-    }
-    .period-selector button.active,.month-selector button.active{
-      background-color: #bfeaff;
-      color: #0175e0;
-      width: 100%;
-    }
-    .arrow {
-      float: right;
-    }
-    .calendar {
-      padding: 15px;
-      flex-grow: 1;
-      background: #FAFAFB;
-      width: 15rem;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .header button {
-      background: none;
-      border: none;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .header .month-name {
-      color: #47366C;
-    }
-    .weekdays {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      text-align: center;
-      margin-bottom: 5px;
-      font-weight: bold;
-      color: #888;
-      font-size: 14px;
-    }
-    .weekdays span{
-      font-weight: bold;
-    }
-    .days {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-    }
-    .days button {
-      position: relative;
-      aspect-ratio: 1;
-      border: none;
-      background: none;
-      cursor: pointer;
-      border-radius: 50%;
-      font-size: 14px;
-      color: #555;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .days button:hover {
-      background-color: #e6f7ff;
-    }
-    .days button.different-month {
-      color: #ccc;
-    }
-    .days button.selected {
-      background-color: #1890ff;
-      color: white;
-    }
-    .days button.in-range {
-      background-color: #e6f7ff;
-      color: #1890ff;
-    }
-    .days button.today {
-      border: 3px solid #29b9ff;
-    }
-    .days button.today span{
-      position: absolute;
-      bottom: -1rem;
-      right: .6rem;
-      padding: 0;
-      margin: 0;
-      font-size: 36px;
-      color: mediumpurple;
-    }
-    .month-year {
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-    }
-    .month-name, .year {
-      margin: 0 5px;
-    }
-    .months, .years {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
-    }
-    .months button, .years button {
-      padding: 10px;
-      border: none;
-      background: none;
-      cursor: pointer;
-    }
-    .months button.selected, .years button.selected {
-      background-color: #1890ff;
-      color: white;
-    }
-    // rtl
-    :dir(rtl) .date-picker-popup, .rtl.date-picker-popup{
-      right: 0 !important;
-      left: auto !important;
-    }
-    :dir(rtl) .arrow,[dir="rtl"] .arrow {
-      rotate: 180deg;
-    }
-  `]
+  styleUrls: ['./date-picker-popup.component.scss']
 })
 export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() rtl = false;
@@ -237,6 +89,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
   @Output() dateSelected = new EventEmitter<Date>();
   @Output() dateRangeSelected = new EventEmitter<{ start: Date, end: Date }>();
+  @Output() closePicker = new EventEmitter<void>();
 
   @ViewChild('monthSelector') monthSelector: ElementRef;
 
@@ -255,6 +108,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   tempEndDate: Date | null = null;
   monthListNum = Array.from({ length: 12 }, (_, i) => i + 1);
   yearList: number[] = [];
+  yearRanges: { start: number, end: number }[] = [];
   viewMode: 'days' | 'months' | 'years' = 'days';
 
   constructor(public el: ElementRef) {}
@@ -263,8 +117,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.setDateAdapter();
     this.setInitialDate();
     this.generateCalendar();
-    this.generateYearList();
     this.weekDays = this.dateAdapter.getDayOfWeekNames('short');
+    if (this.mode == 'year') {
+      this.showYearSelector();
+    }
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -278,7 +134,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   ngAfterViewInit() {
-    this.scrollToSelectedMonth();
+    this.scrollToSelectedItem();
   }
 
   setInitialDate() {
@@ -301,15 +157,17 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.days = Array.from({length: 42}, (_, i) => this.dateAdapter.addDays(startDate, i));
   }
 
-  generateYearList() {
-    const currentYear = this.dateAdapter.getYear(this.dateAdapter.today());
-    this.yearList = Array.from({length: 20}, (_, i) => currentYear - 10 + i);
-  }
-
-  scrollToSelectedMonth(month: number|null = null) {
-    let monthNum = month || this.selectedDate?.getMonth()! + 1;
+  scrollToSelectedItem(id: number|null = null) {
+    let itemId;
+    if (this.viewMode != 'years') {
+      itemId = id || this.selectedDate?.getMonth()! + 1;
+    } else {
+      let currentYear = this.dateAdapter.getYear(this.selectedDate);
+      let currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
+      itemId = id || currentRange.start;
+    }
     if (this.monthSelector && this.selectedDate) {
-      const selectedMonthElement = this.monthSelector.nativeElement.querySelector(`#month_${monthNum}`);
+      const selectedMonthElement = this.monthSelector.nativeElement.querySelector(`#selector_${itemId}`);
       if (selectedMonthElement) {
         selectedMonthElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -320,25 +178,18 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.viewMode = 'months';
   }
 
-  showYearSelector() {
-    this.viewMode = 'years';
-  }
-
-  selectYear(year: number) {
-    this.currentDate = this.dateAdapter.createDate(year, this.dateAdapter.getMonth(this.currentDate), 1);
-    this.viewMode = 'months';
-    this.generateCalendar();
-  }
-
   selectMonth(month: number, closeAfterSelection: boolean = false) {
     this.currentDate = this.dateAdapter.createDate(this.dateAdapter.getYear(this.currentDate), month - 1, 1);
-    if (closeAfterSelection) {
-      this.selectDate(this.currentDate);
+    if (this.mode === 'month' || closeAfterSelection) {
+      this.selectedDate = this.currentDate;
+      this.dateSelected.emit(this.currentDate);
+      // Close the date picker
+      this.closeDatePicker();
     } else {
       this.viewMode = 'days';
       this.generateCalendar();
     }
-    this.scrollToSelectedMonth(month);
+    this.scrollToSelectedItem(month);
   }
 
   selectDate(date: Date) {
@@ -353,6 +204,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     } else {
       this.selectedDate = date;
       this.dateSelected.emit(date);
+      // Close the date picker for 'day' mode
+      if (this.mode === 'day') {
+        this.closeDatePicker();
+      }
     }
     this.currentDate = date;
   }
@@ -443,5 +298,56 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   isSameMonth(date1: Date, date2: Date): boolean {
     return this.dateAdapter.isSameMonth(date1, date2);
+  }
+
+  // year section
+  showYearSelector() {
+    this.viewMode = 'years';
+    this.generateYearRanges();
+    this.generateYearList();
+    this.scrollToSelectedItem();
+  }
+
+  generateYearRanges() {
+    const currentYear = this.dateAdapter.getYear(this.dateAdapter.today());
+    const startYear = Math.floor(currentYear / 15) * 15 - 90; // Start 6 ranges before the current year
+    this.yearRanges = [];
+    for (let i = 0; i < 15; i++) {
+      const start = startYear + i * 15;
+      this.yearRanges.push({ start, end: start + 14 });
+    }
+  }
+
+  generateYearList() {
+    const currentYear = this.dateAdapter.getYear(this.dateAdapter.today());
+    const currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
+    this.yearList = Array.from({length: 15}, (_, i) => currentRange.start + i);
+  }
+
+  selectYearRange(startYear: number) {
+    this.yearList = Array.from({length: 15}, (_, i) => startYear + i);
+    this.viewMode = 'years';
+    this.scrollToSelectedItem(startYear);
+  }
+
+  selectYear(year: number) {
+    this.currentDate = this.dateAdapter.createDate(year, this.dateAdapter.getMonth(this.currentDate), 1);
+    if (this.mode === 'year') {
+      this.selectedDate = this.currentDate;
+      this.dateSelected.emit(this.currentDate);
+      // Close the date picker
+      this.closeDatePicker();
+    } else {
+      this.viewMode = 'months';
+      this.generateCalendar();
+    }
+  }
+
+  isActiveYearRange(startYear: number) {
+    return startYear == this.yearList[0];
+  }
+
+  closeDatePicker() {
+    this.closePicker.emit();
   }
 }
