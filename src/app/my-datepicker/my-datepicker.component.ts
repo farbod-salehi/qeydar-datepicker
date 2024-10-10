@@ -6,7 +6,7 @@ import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-ada
 @Component({
   selector: 'app-date-picker',
   template: `
-    <div class="date-picker-wrapper" [formGroup]="form">
+   <div class="date-picker-wrapper" [formGroup]="form">
       <input
         type="text"
         formControlName="dateInput"
@@ -40,6 +40,7 @@ import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-ada
     }
     input {
       font-family: 'vazirmatn';
+      direction: ltr;
       width: 100%;
       max-width: 300px;
       padding: 8px 12px;
@@ -92,10 +93,22 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   ngOnInit() {
     this.setDateAdapter();
     this.form.get('dateInput')?.valueChanges.subscribe(value => {
-      const date = this.dateAdapter.parse(value, this.format);
-      if (date) {
-        this.selectedDate = date;
-        this.onChange(this.mode === 'range' ? { start: date, end: date } : date);
+      if (typeof value === 'string') {
+        const date = this.dateAdapter.parse(value, this.format);
+        if (date) {
+          if (this.mode === 'range') {
+            // Assume the input is in the format "start - end"
+            const [start, end] = value.split(' - ').map(d => this.dateAdapter.parse(d.trim(), this.format));
+            if (start && end) {
+              this.selectedStartDate = start;
+              this.selectedEndDate = end;
+              this.onChange({ start, end });
+            }
+          } else {
+            this.selectedDate = date;
+            this.onChange(date);
+          }
+        }
       }
     });
   }
@@ -125,7 +138,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   onDateSelected(date: Date) {
     this.selectedDate = date;
     this.updateInputValue();
-    this.isOpen = false;
+    this.isOpen = false;  // Close the popup only when a day is selected
     this.onChange(date);
   }
 
@@ -133,8 +146,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     this.selectedStartDate = dateRange.start;
     this.selectedEndDate = dateRange.end;
     this.updateInputValue();
-    this.isOpen = false;
-    this.onChange(dateRange);
+    if (this.selectedStartDate && this.selectedEndDate) {
+      this.isOpen = false;  // Close the popup only when both start and end dates are selected
+      this.onChange(dateRange);
+    }
   }
 
   updateInputValue() {
@@ -168,13 +183,26 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   writeValue(value: any): void {
     if (value) {
-      if (this.mode === 'range' && value.start && value.end) {
-        this.selectedStartDate = this.dateAdapter.parse(value.start, this.format);
-        this.selectedEndDate = this.dateAdapter.parse(value.end, this.format);
+      if (this.mode === 'range' && typeof value === 'object' && value.start && value.end) {
+        const start = this.dateAdapter.parse(value.start, this.format);
+        const end = this.dateAdapter.parse(value.end, this.format);
+        if (start && end) {
+          this.selectedStartDate = start;
+          this.selectedEndDate = end;
+          this.updateInputValue();
+        }
       } else if (this.mode !== 'range') {
-        this.selectedDate = this.dateAdapter.parse(value, this.format);
+        const date = this.dateAdapter.parse(value, this.format);
+        if (date) {
+          this.selectedDate = date;
+          this.updateInputValue();
+        }
       }
-      this.updateInputValue();
+    } else {
+      this.selectedDate = null;
+      this.selectedStartDate = null;
+      this.selectedEndDate = null;
+      this.form.get('dateInput')?.setValue('');
     }
   }
 

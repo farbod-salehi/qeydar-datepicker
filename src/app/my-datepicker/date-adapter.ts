@@ -30,6 +30,8 @@ import {
   isSameYear as isSameYearGregorian,
   isAfter as isAfterGregorian,
   isBefore as isBeforeGregorian,
+  parseISO,
+  isValid
 } from 'date-fns';
 
 export interface DateAdapter<D> {
@@ -67,7 +69,18 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
   }
 
   parse(value: any, formatString: string): Date | null {
-    return parseJalali(value, formatString, new Date());
+    if (typeof value === 'string') {
+      try {
+        const parsedDate = parseJalali(value, formatString, new Date());
+        return isValid(parsedDate) ? parsedDate : null;
+      } catch (error) {
+        console.error('Error parsing date:', error);
+        return null;
+      }
+    } else if (value instanceof Date) {
+      return isValid(value) ? value : null;
+    }
+    return null;
   }
 
   format(date: Date, formatString: string): string {
@@ -132,7 +145,7 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
   getDayOfWeekNames(style: 'long' | 'short' | 'narrow'): string[] {
     const formats = {
       long: 'EEEE',
-      short: 'EEE',
+      short: 'EEEEEE',
       narrow: 'EEEEE'
     };
     return Array.from({ length: 7 }, (_, i) =>
@@ -196,7 +209,23 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
   }
 
   parse(value: any, formatString: string): Date | null {
-    return parseGregorian(value, formatString, new Date());
+    if (typeof value === 'string') {
+      try {
+        let parsedDate: Date;
+        if (formatString === "ISO") {
+          parsedDate = parseISO(value);
+        } else {
+          parsedDate = parseGregorian(value, formatString, new Date());
+        }
+        return isValid(parsedDate) ? parsedDate : null;
+      } catch (error) {
+        console.error('Error parsing date:', error);
+        return null;
+      }
+    } else if (value instanceof Date) {
+      return isValid(value) ? value : null;
+    }
+    return null;
   }
 
   format(date: Date, formatString: string): string {

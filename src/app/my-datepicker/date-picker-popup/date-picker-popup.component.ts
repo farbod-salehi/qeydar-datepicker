@@ -261,7 +261,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   ngOnInit() {
     this.setDateAdapter();
-    this.currentDate =  this.dateAdapter.today();
+    this.setInitialDate();
     this.generateCalendar();
     this.generateYearList();
     this.weekDays = this.dateAdapter.getDayOfWeekNames('short');
@@ -272,12 +272,23 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       this.setDateAdapter();
     }
     if (changes['selectedDate'] || changes['selectedStartDate'] || changes['selectedEndDate'] || changes['mode'] || changes['calendarType']) {
+      this.setInitialDate();
       this.generateCalendar();
     }
   }
 
   ngAfterViewInit() {
     this.scrollToSelectedMonth();
+  }
+
+  setInitialDate() {
+    if (this.mode === 'range' && this.selectedStartDate) {
+      this.currentDate = this.selectedStartDate;
+    } else if (this.selectedDate) {
+      this.currentDate = this.selectedDate;
+    } else {
+      this.currentDate = this.dateAdapter.today();
+    }
   }
 
   setDateAdapter() {
@@ -340,8 +351,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
         this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
       }
     } else {
+      this.selectedDate = date;
       this.dateSelected.emit(date);
     }
+    this.currentDate = date;
   }
 
   selectPeriod(period: string) {
