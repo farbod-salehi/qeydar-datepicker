@@ -154,6 +154,10 @@
     background-color: #1890ff;
     color: white;
   }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   // rtl
   :dir(rtl) .date-picker-popup, .rtl.date-picker-popup{
     right: 0 !important;

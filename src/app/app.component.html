@@ -5,8 +5,10 @@
      [rtl]="rtl"
      [calendarType]="rtl? 'jalali':'georgian'"
      [(ngModel)]="myDate"
-     [mode]="rangPicker? 'range': 'day'"
+     [mode]="rangPicker? 'range': 'month'"
      [format]="'yyyy/MM/dd'"
+     [maxDate]="maxDate"
+     [minDate]="minDate"
      [mode]="'month'"
     (ngModelChange)="onChange($event)"></app-date-picker>
 </div>

@@ -24,6 +24,8 @@ import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-ada
         [mode]="mode"
         [customLabels]="customLabels"
         [calendarType]="calendarType"
+        [minDate]="minDate"
+        [maxDate]="maxDate"
         (dateSelected)="onDateSelected($event)"
         (dateRangeSelected)="onDateRangeSelected($event)"
       ></app-date-picker-popup>
@@ -76,6 +78,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() format = 'yyyy/MM/dd';
   @Input() customLabels: { label: string, value: Date }[] = [];
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
+  @Input() minDate: Date | null = null;
+  @Input() maxDate: Date | null = null;
 
   isOpen = false;
   selectedDate: Date | null = null;
@@ -83,6 +87,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   selectedEndDate: Date | null = null;
   form: FormGroup;
   dateAdapter: DateAdapter<Date>;
+  private isInternalChange = false;
 
   constructor(private elementRef: ElementRef, private fb: FormBuilder) {
     this.form = this.fb.group({
@@ -93,20 +98,20 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   ngOnInit() {
     this.setDateAdapter();
     this.form.get('dateInput')?.valueChanges.subscribe(value => {
-      if (typeof value === 'string') {
-        const date = this.dateAdapter.parse(value, this.format);
+      if (!this.isInternalChange && typeof value === 'string') {
+        const date = this.dateAdapter.parse(value, this.getFormatForMode());
         if (date) {
           if (this.mode === 'range') {
-            // Assume the input is in the format "start - end"
-            const [start, end] = value.split(' - ').map(d => this.dateAdapter.parse(d.trim(), this.format));
+            const [start, end] = value.split(' - ').map(d => this.dateAdapter.parse(d.trim(), this.getFormatForMode()));
             if (start && end) {
-              this.selectedStartDate = start;
-              this.selectedEndDate = end;
-              this.onChange({ start, end });
+              this.selectedStartDate = this.clampDate(start);
+              this.selectedEndDate = this.clampDate(end);
+              this.onChange(value);
             }
           } else {
-            this.selectedDate = date;
-            this.onChange(date);
+            this.selectedDate = this.clampDate(date);
+            // this.onChange(value);
+            this.onChange(this.dateAdapter.format(this.selectedDate, this.getFormatForMode()));
           }
         }
       }
@@ -136,18 +141,26 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   }
 
   onDateSelected(date: Date) {
-    const formattedDate = this.dateAdapter.format(date, this.format);
+    const clampedDate = this.clampDate(date);
+    this.selectedDate = clampedDate;
+    const formattedDate = this.dateAdapter.format(clampedDate, this.getFormatForMode());
+    this.isInternalChange = true;
     this.form.get('dateInput')?.setValue(formattedDate);
+    this.isInternalChange = false;
     this.onChange(formattedDate);
     this.isOpen = false;
   }
 
   onDateRangeSelected(dateRange: { start: Date, end: Date }) {
-    const format = this.format;
-    const formattedStart = this.dateAdapter.format(dateRange.start, format);
-    const formattedEnd = this.dateAdapter.format(dateRange.end, format);
+    const format = this.getFormatForMode();
+    const clampedStart = this.clampDate(dateRange.start);
+    const clampedEnd = this.clampDate(dateRange.end);
+    const formattedStart = this.dateAdapter.format(clampedStart, format);
+    const formattedEnd = this.dateAdapter.format(clampedEnd, format);
     const formattedRange = `${formattedStart} - ${formattedEnd}`;
+    this.isInternalChange = true;
     this.form.get('dateInput')?.setValue(formattedRange);
+    this.isInternalChange = false;
     this.onChange(formattedRange);
     this.isOpen = false;
   }
@@ -177,47 +190,57 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     }
   }
 
+  clampDate(date: Date): Date {
+    if (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) {
+      return this.minDate;
+    }
+    if (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate)) {
+      return this.maxDate;
+    }
+    return date;
+  }
+
+  getFormatForMode(): string {
+    switch (this.mode) {
+      case 'year':
+        return 'yyyy';
+      case 'month':
+        return 'yyyy/MM';
+      case 'day':
+      case 'range':
+        return this.format;
+      default:
+        return this.format;
+    }
+  }
   // ControlValueAccessor methods
   onChange: any = () => {};
   onTouch: any = () => {};
 
   writeValue(value: any): void {
-    // if (value) {
-    //   if (this.mode === 'range' && typeof value === 'object' && value.start && value.end) {
-    //     const start = this.dateAdapter.parse(value.start, this.format);
-    //     const end = this.dateAdapter.parse(value.end, this.format);
-    //     if (start && end) {
-    //       this.selectedStartDate = start;
-    //       this.selectedEndDate = end;
-    //       this.updateInputValue();
-    //     }
-    //   } else if (this.mode !== 'range') {
-    //     const date = this.dateAdapter.parse(value, this.format);
-    //     if (date) {
-    //       this.selectedDate = date;
-    //       this.updateInputValue();
-    //     }
-    //   }
-    // } else {
-    //   this.selectedDate = null;
-    //   this.selectedStartDate = null;
-    //   this.selectedEndDate = null;
-    //   this.form.get('dateInput')?.setValue('');
-    // }
     if (value) {
+      this.isInternalChange = true;
       if (this.mode === 'range' && typeof value === 'object' && value.start && value.end) {
-        const format = this.format;
-        const formattedStart = this.dateAdapter.format(this.dateAdapter.parse(value.start, format), format);
-        const formattedEnd = this.dateAdapter.format(this.dateAdapter.parse(value.end, format), format);
+        const format = this.getFormatForMode();
+        const formattedStart = this.dateAdapter.format(this.clampDate(this.dateAdapter.parse(value.start, format)), format);
+        const formattedEnd = this.dateAdapter.format(this.clampDate(this.dateAdapter.parse(value.end, format)), format);
         const formattedRange = `${formattedStart} - ${formattedEnd}`;
         this.form.get('dateInput')?.setValue(formattedRange);
       } else if (this.mode !== 'range') {
-        const format = this.format;
-        const formattedDate = this.dateAdapter.format(this.dateAdapter.parse(value, format), format);
-        this.form.get('dateInput')?.setValue(formattedDate);
+        const format = this.getFormatForMode();
+        const parsedDate = this.dateAdapter.parse(value, format);
+        if (parsedDate) {
+          this.selectedDate = this.clampDate(parsedDate);
+          const formattedDate = this.dateAdapter.format(this.selectedDate, format);
+          this.form.get('dateInput')?.setValue(formattedDate);
+        }
       }
+      this.isInternalChange = false;
     } else {
+      this.isInternalChange = true;
+      this.selectedDate = null;
       this.form.get('dateInput')?.setValue('');
+      this.isInternalChange = false;
     }
   }
 

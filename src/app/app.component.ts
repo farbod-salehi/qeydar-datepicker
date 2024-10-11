@@ -10,6 +10,8 @@ export class AppComponent {
   myDate = new Date();
   rtl = false;
   rangPicker = false;
+  maxDate = new Date(2024,8);
+  minDate = new Date(2024,5);
 
   onChange(event:any) {
     console.log(event);

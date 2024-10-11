@@ -19,6 +19,7 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
             *ngFor="let month of monthListNum" 
             [id]="'selector_'+month"
             [class.active]="isActiveMonth(month)"
+            [disabled]="isMonthDisabled(month)"
             (click)="selectMonth(month, false)">
             {{ getMonthName(month) }}
           </button>
@@ -28,6 +29,7 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
             *ngFor="let yearRange of yearRanges" 
             [id]="'selector_'+yearRange.start"
             [class.active]="isActiveYearRange(yearRange.start)"
+            [disabled]="isYearRangeDisabled(yearRange)"
             (click)="selectYearRange(yearRange.start)"
           >
             {{ yearRange.start }} - {{ yearRange.end }}
@@ -36,14 +38,14 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
       </div>
       <div class="calendar">
         <div class="header">
-          <button (click)="prevMonth()">&lt;</button>
+          <button (click)="prevMonth()" [disabled]="isPrevMonthDisabled()">&lt;</button>
           <span class="month-year">
             <span class="month-name" (click)="showMonthSelector()">{{ getCurrentMonthName() }}</span>
             <span class="year" (click)="showYearSelector()">{{ getCurrentYear() }}</span>
           </span>
-          <button (click)="nextMonth()">&gt;</button>
+          <button (click)="nextMonth()" [disabled]="isNextMonthDisabled()">&gt;</button>
         </div>
-        <div *ngIf="mode == 'day'">
+        <div *ngIf="viewMode == 'days'">
           <div *ngIf="viewMode === 'days'" class="weekdays">
             <span *ngFor="let day of getWeekDays()">{{ day }}</span>
           </div>
@@ -53,6 +55,7 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
                     [class.selected]="isSelected(day)"
                     [class.in-range]="isInRange(day)"
                     [class.today]="isToday(day)"
+                    [disabled]="isDateDisabled(day)"
                     (click)="selectDate(day)"
                     (mouseenter)="onMouseEnter(day,$event)">
               {{ dateAdapter.getDate(day) }}
@@ -63,13 +66,15 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
         <div *ngIf="viewMode === 'months' || mode == 'month'" class="months">
           <button *ngFor="let month of monthListNum" 
                   [class.selected]="month === dateAdapter.getMonth(currentDate) + 1"
-                  (click)="selectMonth(month)">
+                  [disabled]="isMonthDisabled(month)"
+                  (click)="selectMonth(month,false)">
             {{ getMonthName(month) }}
           </button>
         </div>
         <div *ngIf="viewMode === 'years' || mode == 'year'" class="years">
           <button *ngFor="let year of yearList" 
                   [class.selected]="year === dateAdapter.getYear(currentDate)"
+                  [disabled]="isYearDisabled(year)"
                   (click)="selectYear(year)">
             {{ year }}
           </button>
@@ -87,6 +92,8 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() mode: 'day' | 'month' | 'year' | 'range' = 'day';
   @Input() customLabels: { label: string, value: Date }[] = [];
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
+  @Input() minDate: Date | null = null;
+  @Input() maxDate: Date | null = null;
   @Output() dateSelected = new EventEmitter<Date>();
   @Output() dateRangeSelected = new EventEmitter<{ start: Date, end: Date }>();
   @Output() closePicker = new EventEmitter<void>();
@@ -131,6 +138,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       this.setInitialDate();
       this.generateCalendar();
     }
+    if (changes['minDate'] || changes['maxDate']) {
+      this.adjustCurrentDateToValidRange();
+    }
   }
 
   ngAfterViewInit() {
@@ -145,6 +155,22 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     } else {
       this.currentDate = this.dateAdapter.today();
     }
+
+    switch (this.mode) {
+      case 'day':
+        this.viewMode = 'days'
+        break;
+      case 'month':
+        this.viewMode = 'months'
+        break;
+      case 'year':
+        this.viewMode = 'years'
+        break;
+      default:
+        break;
+    }
+
+    this.adjustCurrentDateToValidRange();
   }
 
   setDateAdapter() {
@@ -179,6 +205,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   selectMonth(month: number, closeAfterSelection: boolean = false) {
+    if (this.isMonthDisabled(month)) {
+      return;
+    }
     this.currentDate = this.dateAdapter.createDate(this.dateAdapter.getYear(this.currentDate), month - 1, 1);
     if (this.mode === 'month' || closeAfterSelection) {
       this.selectedDate = this.currentDate;
@@ -193,6 +222,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   selectDate(date: Date) {
+    if (this.isDateDisabled(date)) {
+      return;
+    }
     if (this.mode === 'range') {
       if (!this.selectedStartDate || (this.selectedStartDate && this.selectedEndDate) || this.dateAdapter.isBefore(date, this.selectedStartDate)) {
         this.selectedStartDate = date;
@@ -204,10 +236,6 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     } else {
       this.selectedDate = date;
       this.dateSelected.emit(date);
-      // Close the date picker for 'day' mode
-      if (this.mode === 'day') {
-        this.closeDatePicker();
-      }
     }
     this.currentDate = date;
   }
@@ -242,11 +270,17 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   prevMonth() {
+    if (this.isPrevMonthDisabled()) {
+      return;
+    }
     this.currentDate = this.dateAdapter.addMonths(this.currentDate, -1);
     this.generateCalendar();
   }
 
   nextMonth() {
+    if (this.isNextMonthDisabled()) {
+      return;
+    }
     this.currentDate = this.dateAdapter.addMonths(this.currentDate, 1);
     this.generateCalendar();
   }
@@ -331,6 +365,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   selectYear(year: number) {
+    if (this.isYearDisabled(year)) {
+      return;
+    }
+
     this.currentDate = this.dateAdapter.createDate(year, this.dateAdapter.getMonth(this.currentDate), 1);
     if (this.mode === 'year') {
       this.selectedDate = this.currentDate;
@@ -345,6 +383,53 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   isActiveYearRange(startYear: number) {
     return startYear == this.yearList[0];
+  }
+
+  adjustCurrentDateToValidRange() {
+    let adjustedDate = this.currentDate;
+    if (this.minDate && this.dateAdapter.isBefore(adjustedDate, this.minDate)) {
+      adjustedDate = this.minDate;
+    } else if (this.maxDate && this.dateAdapter.isAfter(adjustedDate, this.maxDate)) {
+      adjustedDate = this.maxDate;
+    }
+
+    // Ensure we're not changing the date unnecessarily
+    if (!this.dateAdapter.isSameDay(this.currentDate, adjustedDate)) {
+      this.currentDate = adjustedDate;
+      this.generateCalendar();
+    }
+  }
+
+  isDateDisabled(date: Date): boolean {
+    return (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) ||
+           (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate));
+  }
+
+  isMonthDisabled(month: number): boolean {
+    const year = this.dateAdapter.getYear(this.currentDate);
+    const startOfMonth = this.dateAdapter.createDate(year, month - 1, 1);
+    const endOfMonth = this.dateAdapter.endOfMonth(startOfMonth);
+    return this.isDateDisabled(startOfMonth) && this.isDateDisabled(endOfMonth);
+  }
+
+  isYearDisabled(year: number): boolean {
+    const startOfYear = this.dateAdapter.createDate(year, 0, 1);
+    const endOfYear = this.dateAdapter.createDate(year, 11, 31);
+    return this.isDateDisabled(startOfYear) && this.isDateDisabled(endOfYear);
+  }
+
+  isYearRangeDisabled(yearRange: { start: number, end: number }): boolean {
+    return this.isYearDisabled(yearRange.start) && this.isYearDisabled(yearRange.end);
+  }
+
+  isPrevMonthDisabled(): boolean {
+    const prevMonth = this.dateAdapter.addMonths(this.currentDate, -1);
+    return this.isDateDisabled(prevMonth);
+  }
+
+  isNextMonthDisabled(): boolean {
+    const nextMonth = this.dateAdapter.addMonths(this.currentDate, 1);
+    return this.isDateDisabled(nextMonth);
   }
 
   closeDatePicker() {
