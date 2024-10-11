@@ -7,10 +7,11 @@ import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-ada
   selector: 'app-date-picker',
   template: `
    <div class="date-picker-wrapper" [formGroup]="form">
-      <input
+   <input
         type="text"
         formControlName="dateInput"
         (click)="toggleDatePicker()"
+        (blur)="onInputBlur()"
         [class.focus]="isOpen"
         [placeholder]="getPlaceholder()"
       >
@@ -134,6 +135,48 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
         this.onChange(this.dateAdapter.format(this.selectedDate, format));
       }
     }
+  }
+
+  onInputBlur() {
+    const inputValue = this.form.get('dateInput')?.value;
+    if (typeof inputValue === 'string') {
+      const correctedValue = this.validateAndCorrectInput(inputValue);
+      if (correctedValue !== inputValue) {
+        this.isInternalChange = true;
+        this.form.get('dateInput')?.setValue(correctedValue);
+        this.updateSelectedDates(correctedValue);
+        this.isInternalChange = false;
+      }
+    }
+  }
+
+  validateAndCorrectInput(value: string): string {
+    const format = this.getFormatForMode();
+    if (this.mode === 'range') {
+      const [start, end] = value.split(' - ').map(d => d.trim());
+      const correctedStart = this.validateAndCorrectSingleDate(start, format);
+      const correctedEnd = this.validateAndCorrectSingleDate(end, format);
+      return `${correctedStart} - ${correctedEnd}`;
+    } else {
+      return this.validateAndCorrectSingleDate(value, format);
+    }
+  }
+
+  validateAndCorrectSingleDate(dateString: string, format: string): string {
+    let date = this.dateAdapter.parse(dateString, format);
+    if (!date) {
+      // If the date is invalid, return today's date or minDate if today is before minDate
+      const today = this.dateAdapter.today();
+      date = this.minDate ? this.dateAdapter.max([today, this.minDate]) : today;
+    } else {
+      // Clamp the date to be within minDate and maxDate
+      if (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) {
+        date = this.minDate;
+      } else if (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate)) {
+        date = this.maxDate;
+      }
+    }
+    return this.dateAdapter.format(date, format);
   }
 
   @HostListener('document:click', ['$event'])

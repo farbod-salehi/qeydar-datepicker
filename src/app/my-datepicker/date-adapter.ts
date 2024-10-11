@@ -14,6 +14,7 @@ import {
   isAfter as isAfterJalali,
   isBefore as isBeforeJalali,
   isValid as isValidJalali,
+  max as maxJalali,
 } from 'date-fns-jalali';
 
 import {
@@ -32,6 +33,7 @@ import {
   isAfter as isAfterGregorian,
   isBefore as isBeforeGregorian,
   isValid as isValidGregorian,
+  max as maxGregorian,
   parseISO
 } from 'date-fns';
 
@@ -63,6 +65,7 @@ export interface DateAdapter<D> {
   endOfMonth(date: D): D;
   startOfWeek(date: D): D;
   isValidFormat(dateString: string, formatString: string): boolean;
+  max(dates: D[]): D;
 }
 
 export class JalaliDateAdapter implements DateAdapter<Date> {
@@ -217,6 +220,10 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
       return false;
     }
   }
+
+  max(dates: Date[]): Date {
+    return maxJalali(dates);
+  }
 }
 
 export class GregorianDateAdapter implements DateAdapter<Date> {
@@ -366,5 +373,9 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
     } catch (error) {
       return false;
     }
+  }
+
+  max(dates: Date[]): Date {
+    return maxGregorian(dates);
   }
 }
