@@ -1,14 +1,16 @@
 <button (click)="changeDirection()">to rtl</button>
 <button (click)="rangPicker = !rangPicker">rangpicker on/off</button>
 <div [dir]="rtl? 'rtl': 'ltr'">
-    <app-date-picker
+    <qeydar-date-picker
      [rtl]="rtl"
      [calendarType]="rtl? 'jalali':'georgian'"
      [(ngModel)]="myDate"
      [mode]="rangPicker? 'range': 'month'"
      [format]="'yyyy/MM/dd'"
-     [maxDate]="maxDate"
-     [minDate]="minDate"
      [mode]="'day'"
-    (ngModelChange)="onChange($event)"></app-date-picker>
+    (ngModelChange)="onChange($event)"></qeydar-date-picker>
+    <br>
+    <input type="text">
+    <!-- [maxDate]="maxDate"
+     [minDate]="minDate" -->
 </div>

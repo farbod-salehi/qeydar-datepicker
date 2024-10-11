@@ -2,15 +2,16 @@ import { Component, ElementRef, HostListener, forwardRef, Input, OnInit, OnChang
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { slideMotion } from './animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
+import { CustomLabels } from './date-picker-popup/models';
 
 @Component({
-  selector: 'app-date-picker',
+  selector: 'qeydar-date-picker',
   template: `
    <div class="date-picker-wrapper" [formGroup]="form">
    <input
         type="text"
         formControlName="dateInput"
-        (click)="toggleDatePicker()"
+        (focus)="toggleDatePicker()"
         (blur)="onInputBlur()"
         [class.focus]="isOpen"
         [placeholder]="getPlaceholder()"
@@ -33,7 +34,7 @@ import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-ada
     </div>
   `,
   styles: [`
-    :host.my-datepicker ::ng-deep {
+    :host.qeydar-datepicker ::ng-deep {
       display: block;
       max-width: fit-content;
     }
@@ -62,7 +63,7 @@ import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-ada
     }
   `],
   host: {
-    "[class.my-datepicker]": "true"
+    "[class.qeydar-datepicker]": "true"
   },
   providers: [
     {
@@ -77,7 +78,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() rtl = false;
   @Input() mode: 'day' | 'month' | 'year' | 'range' = 'day';
   @Input() format = 'yyyy/MM/dd';
-  @Input() customLabels: { label: string, value: Date }[] = [];
+  @Input() customLabels: Array<CustomLabels> = [];
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
   @Input() minDate: Date | null = null;
   @Input() maxDate: Date | null = null;
@@ -94,6 +95,13 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     this.form = this.fb.group({
       dateInput: ['', [this.dateFormatValidator.bind(this), this.dateRangeValidator.bind(this)]]
     });
+  }
+
+  @HostListener('document:click', ['$event'])
+  onClickOutside(event: Event) {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.isOpen = false;
+    }
   }
 
   ngOnInit() {
@@ -177,15 +185,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       }
     }
     return this.dateAdapter.format(date, format);
-  }
-
-  @HostListener('document:click', ['$event'])
-  onClickOutside(event: Event) {
-    console.log(event,!this.elementRef.nativeElement.contains(event.target),this.elementRef.nativeElement);
-    
-    if (!this.elementRef.nativeElement.contains(event.target)) {
-      this.isOpen = false;
-    }
   }
 
   toggleDatePicker() {

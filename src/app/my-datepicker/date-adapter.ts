@@ -15,6 +15,7 @@ import {
   isBefore as isBeforeJalali,
   isValid as isValidJalali,
   max as maxJalali,
+  setYear as setYearJalali,
 } from 'date-fns-jalali';
 
 import {
@@ -34,6 +35,7 @@ import {
   isBefore as isBeforeGregorian,
   isValid as isValidGregorian,
   max as maxGregorian,
+  setYear as setYearGregorian,
   parseISO
 } from 'date-fns';
 
@@ -66,6 +68,7 @@ export interface DateAdapter<D> {
   startOfWeek(date: D): D;
   isValidFormat(dateString: string, formatString: string): boolean;
   max(dates: D[]): D;
+  setYear(date: D, year: number): D;
 }
 
 export class JalaliDateAdapter implements DateAdapter<Date> {
@@ -224,6 +227,10 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
   max(dates: Date[]): Date {
     return maxJalali(dates);
   }
+
+  setYear(date: Date, year: number): Date {
+    return setYearJalali(date, year)
+  }
 }
 
 export class GregorianDateAdapter implements DateAdapter<Date> {
@@ -377,5 +384,9 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
 
   max(dates: Date[]): Date {
     return maxGregorian(dates);
+  }
+
+  setYear(date: Date, year: number): Date {
+    return setYearGregorian(date, year);
   }
 }

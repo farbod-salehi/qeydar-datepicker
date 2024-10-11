@@ -15,20 +15,20 @@
     width: fit-content;
     border: 1px solid #ddd;
   }
-  .period-selector,.month-selector {
+  .period-selector,.side-selector {
     width: 150px;
     border-inline-end: 1px solid #e0e0e0;
   }
-  .month-selector {
+  .side-selector {
     max-height: 19rem;
     overflow: auto; /* Allow scrolling */
     scrollbar-width: none; /* For Firefox */
     -ms-overflow-style: none; /* For Internet Explorer and Edge */
   }
-  .month-selector::-webkit-scrollbar {
+  .side-selector::-webkit-scrollbar {
     display: none; /* For Chrome, Safari, and Opera */
   }
-  .period-selector button,.month-selector button {
+  .period-selector button,.side-selector button {
     display: flex;
     justify-content: space-between;
     font-size: 14px;
@@ -42,10 +42,10 @@
     color: #555;
     transition: background-color 0.3s;
   }
-  .period-selector button:hover,.month-selector button:hover {
+  .period-selector button:hover,.side-selector button:hover {
     background-color: #e6f7ff;
   }
-  .period-selector button.active,.month-selector button.active{
+  .period-selector button.active,.side-selector button.active{
     background-color: #bfeaff;
     color: #0175e0;
     width: 100%;
@@ -158,6 +158,32 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  // icons
+  .qeydar-calendar-nav-left:before {
+    position: relative;
+    content: "";
+    display: inline-block;
+    height: 8px;
+    width: 8px;
+    vertical-align: baseline;
+    border-style: solid;
+    border-width: 2px 2px 0 0;
+    transform: rotate(-135deg) !important;
+  }
+  .qeydar-calendar-nav-left:before,.qeydar-calendar-nav-right:before {
+    position: relative;
+    content: "";
+    display: inline-block;
+    height: 8px;
+    width: 8px;
+    vertical-align: baseline;
+    border-style: solid;
+    border-color: #444;
+    border-width: 2px 2px 0 0;
+    transform: rotate(45deg);
+  }
+
   // rtl
   :dir(rtl) .date-picker-popup, .rtl.date-picker-popup{
     right: 0 !important;
@@ -165,4 +191,13 @@
   }
   :dir(rtl) .arrow,[dir="rtl"] .arrow {
     rotate: 180deg;
+  }
+
+  :dir(rtl) .qeydar-calendar-nav-left:before,
+  :dir(rtl) .qeydar-calendar-nav-right:before {
+    transform: rotate(-135deg);
+  }
+
+  :dir(rtl) .qeydar-calendar-nav-left:before {
+    transform: rotate(45deg) !important;
   }
