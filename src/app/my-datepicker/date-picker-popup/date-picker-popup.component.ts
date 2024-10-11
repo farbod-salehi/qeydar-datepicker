@@ -51,15 +51,16 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
           </div>
           <div *ngIf="viewMode === 'days'" class="days">
             <button *ngFor="let day of days" 
-                    [class.different-month]="!isSameMonth(day, currentDate)"
-                    [class.selected]="isSelected(day)"
-                    [class.in-range]="isInRange(day)"
-                    [class.today]="isToday(day)"
-                    [disabled]="isDateDisabled(day)"
-                    (click)="selectDate(day)"
-                    (mouseenter)="onMouseEnter(day,$event)">
+                  [class.different-month]="!isSameMonth(day, currentDate)"
+                  [class.selected]="isSelected(day)"
+                  [class.in-range]="isInRange(day)"
+                  [class.range-start]="isRangeStart(day)"
+                  [class.range-end]="isRangeEnd(day)"
+                  [class.today]="isToday(day)"
+                  [disabled]="isDateDisabled(day)"
+                  (click)="selectDate(day)"
+                  (mouseenter)="onMouseEnter(day,$event)">
               {{ dateAdapter.getDate(day) }}
-              <!-- <span *ngIf="isToday(day)" class="today">.</span> -->
             </button>
           </div>
         </div>
@@ -140,6 +141,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     }
     if (changes['minDate'] || changes['maxDate']) {
       this.adjustCurrentDateToValidRange();
+    }
+    if (changes['selectedStartDate'] || changes['selectedEndDate']) {
+      this.setInitialDate();
+      this.generateCalendar();
     }
   }
 
@@ -287,11 +292,18 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   isSelected(date: Date): boolean {
     if (this.mode === 'range') {
-      return (this.selectedStartDate && this.dateAdapter.isSameDay(date, this.selectedStartDate)) ||
-             (this.selectedEndDate && this.dateAdapter.isSameDay(date, this.selectedEndDate));
+      return this.isRangeStart(date) || this.isRangeEnd(date);
     } else {
       return this.selectedDate && this.dateAdapter.isSameDay(date, this.selectedDate);
     }
+  }
+
+  isRangeStart(date: Date): boolean {
+    return this.mode === 'range' && this.selectedStartDate && this.dateAdapter.isSameDay(date, this.selectedStartDate);
+  }
+
+  isRangeEnd(date: Date): boolean {
+    return this.mode === 'range' && this.selectedEndDate && this.dateAdapter.isSameDay(date, this.selectedEndDate);
   }
 
   isInRange(date: Date): boolean {

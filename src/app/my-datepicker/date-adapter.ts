@@ -13,6 +13,7 @@ import {
   isSameYear as isSameYearJalali,
   isAfter as isAfterJalali,
   isBefore as isBeforeJalali,
+  isValid as isValidJalali,
 } from 'date-fns-jalali';
 
 import {
@@ -30,8 +31,8 @@ import {
   isSameYear as isSameYearGregorian,
   isAfter as isAfterGregorian,
   isBefore as isBeforeGregorian,
-  parseISO,
-  isValid
+  isValid as isValidGregorian,
+  parseISO
 } from 'date-fns';
 
 export interface DateAdapter<D> {
@@ -61,6 +62,7 @@ export interface DateAdapter<D> {
   startOfMonth(date: D): D;
   endOfMonth(date: D): D;
   startOfWeek(date: D): D;
+  isValidFormat(dateString: string, formatString: string): boolean;
 }
 
 export class JalaliDateAdapter implements DateAdapter<Date> {
@@ -72,13 +74,13 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
     if (typeof value === 'string') {
       try {
         const parsedDate = parseJalali(value, formatString, new Date());
-        return isValid(parsedDate) ? parsedDate : null;
+        return isValidJalali(parsedDate) ? parsedDate : null;
       } catch (error) {
         console.error('Error parsing date:', error);
         return null;
       }
     } else if (value instanceof Date) {
-      return isValid(value) ? value : null;
+      return isValidJalali(value) ? value : null;
     }
     return null;
   }
@@ -201,6 +203,20 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
   startOfWeek(date: Date): Date {
     return startOfWeekJalali(date, { weekStartsOn: this.getFirstDayOfWeek() as 0 | 1 | 2 | 3 | 4 | 5 | 6 });
   }
+
+  isValidFormat(dateString: string, formatString: string): boolean {
+    try {
+      const parsedDate = parseJalali(dateString, formatString, new Date());
+      if (!isValidJalali(parsedDate)) {
+        return false;
+      }
+      // Check if the formatted parsed date matches the original date string
+      const formattedDate = formatJalali(parsedDate, formatString);
+      return formattedDate === dateString;
+    } catch (error) {
+      return false;
+    }
+  }
 }
 
 export class GregorianDateAdapter implements DateAdapter<Date> {
@@ -217,13 +233,13 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
         } else {
           parsedDate = parseGregorian(value, formatString, new Date());
         }
-        return isValid(parsedDate) ? parsedDate : null;
+        return isValidGregorian(parsedDate) ? parsedDate : null;
       } catch (error) {
         console.error('Error parsing date:', error);
         return null;
       }
     } else if (value instanceof Date) {
-      return isValid(value) ? value : null;
+      return isValidGregorian(value) ? value : null;
     }
     return null;
   }
@@ -336,5 +352,19 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
 
   startOfWeek(date: Date): Date {
     return startOfWeekGregorian(date, { weekStartsOn: this.getFirstDayOfWeek() as 0 | 1 | 2 | 3 | 4 | 5 | 6 });
+  }
+
+  isValidFormat(dateString: string, formatString: string): boolean {
+    try {
+      const parsedDate = parseGregorian(dateString, formatString, new Date());
+      if (!isValidGregorian(parsedDate)) {
+        return false;
+      }
+      // Check if the formatted parsed date matches the original date string
+      const formattedDate = formatGregorian(parsedDate, formatString);
+      return formattedDate === dateString;
+    } catch (error) {
+      return false;
+    }
   }
 }
