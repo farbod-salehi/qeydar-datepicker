@@ -1,6 +1,6 @@
 export interface CustomLabels {
     label: string,
-    value: Array<Date>|'custom',
+    value: Array<Date> | 'custom',
     arrow?: boolean
 }
 
@@ -14,26 +14,56 @@ export interface DateRange {
     end: Date
 }
 
-export enum lang_Fa {
-    lastHour = "آخرین ساعت",
-    lastDay = "آخرین روز",
-    lastWeek = "آخرین هفته",
-    lastMonth = "آخرین ماه",
-    custom = "دلخواه",
-    previousMonth = "ماه قبل",
-    nextMonth = "ماه بعد",
-    previousYear = "سال قبل",
-    nextYear = "سال بعد"
+export interface Lang_Locale {
+    lastHour: string;
+    lastDay: string;
+    lastWeek: string;
+    lastMonth: string;
+    custom: string;
+    previousMonth: string;
+    nextMonth: string;
+    previousYear: string;
+    nextYear: string;
+    selectDate: string;
+    selectMonth: string;
+    selectYear: string;
+    selectDateRange: string;
+    startDate: string;
+    endDate: string;
 }
 
-export enum lang_En {
-    lastHour = "last hour",
-    lastDay = "last day",
-    lastWeek = "last week",
-    lastMonth = "last month",
-    custom = "custom",
-    previousMonth = "previous Month",
-    nextMonth = "next Month",
-    previousYear = "previous Year",
-    nextYear = "next Year"
+export class lang_Fa implements Lang_Locale{
+    lastHour:string = "آخرین ساعت";
+    lastDay:string = "آخرین روز";
+    lastWeek:string = "آخرین هفته";
+    lastMonth:string = "آخرین ماه";
+    custom:string = "دلخواه";
+    previousMonth:string = "ماه قبل";
+    nextMonth:string = "ماه بعد";
+    previousYear:string = "سال قبل";
+    nextYear:string = "سال بعد";
+    selectDate:string = "انتخاب تاریخ";
+    selectMonth:string = "انتخاب ماه";
+    selectYear:string = "انتخاب سال";
+    selectDateRange:string = "انتخاب محدوده تاریخ";
+    startDate:string = "از تاریخ";
+    endDate:string = "تا تاریخ";
+}
+
+export class lang_En implements Lang_Locale{
+    lastHour:string = "last Hour";
+    lastDay:string = "last Day";
+    lastWeek:string = "last Week";
+    lastMonth:string = "last Month";
+    custom:string = "Custom";
+    previousMonth:string = "Previous Month";
+    nextMonth:string = "Next Month";
+    previousYear:string = "Previous Year";
+    nextYear:string = "Next Year";
+    selectDate:string = "Select date";
+    selectMonth:string = "Select month";
+    selectYear:string = "Select year";
+    selectDateRange:string = "Select date range";
+    startDate:string = "Start date";
+    endDate:string = "End date";
 }

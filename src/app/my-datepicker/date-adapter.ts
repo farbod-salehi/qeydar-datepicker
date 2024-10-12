@@ -49,9 +49,9 @@ export interface DateAdapter<D> {
   addMonths(date: D, amount: number): D;
   addYears(date: D, amount: number): D;
   addHours(date: D, amount: number): D;
-  getYear(date: D): number;
-  getMonth(date: D): number;
-  getDate(date: D): number;
+  getYear(date: D): number|null;
+  getMonth(date: D): number|null;
+  getDate(date: D): number|null;
   getDayOfWeek(date: D): number;
   getMonthNames(style: 'long' | 'short' | 'narrow'): string[];
   getDateNames(): string[];
@@ -115,17 +115,17 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
     return addHoursJalali(date, amount);
   }
 
-  getYear(date: Date): number {
-    return parseInt(formatJalali(date, 'yyyy'));
+  getYear(date: Date): number|null {
+    return date? parseInt(formatJalali(date, 'yyyy')): null;
   }
 
-  getMonth(date: Date): number {
+  getMonth(date: Date): number|null {
     // Jalali months are 1-indexed in date-fns-jalali
-    return parseInt(formatJalali(date, 'M')) - 1;
+    return date? parseInt(formatJalali(date, 'M')) - 1: null;
   }
 
-  getDate(date: Date): number {
-    return parseInt(formatJalali(date, 'dd'));
+  getDate(date: Date): number|null {
+    return date? parseInt(formatJalali(date, 'dd')): null;
   }
 
   getDayOfWeek(date: Date): number {

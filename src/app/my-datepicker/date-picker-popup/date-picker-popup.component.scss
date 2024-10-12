@@ -71,7 +71,7 @@
     font-size: 16px;
     cursor: pointer;
   }
-  .header .month-name {
+  .header .month-name,.header .year {
     color: #47366C;
   }
   .weekdays {
@@ -80,7 +80,7 @@
     text-align: center;
     margin-bottom: 5px;
     font-weight: bold;
-    color: #888;
+    color: #18396ccc;
     font-size: 14px;
   }
   .weekdays span{

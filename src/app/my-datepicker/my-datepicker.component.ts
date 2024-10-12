@@ -1,8 +1,8 @@
-import { Component, ElementRef, HostListener, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { slideMotion } from './animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
-import { CustomLabels } from './date-picker-popup/models';
+import { CustomLabels, lang_En, lang_Fa, Lang_Locale } from './date-picker-popup/models';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
 
 @Component({
@@ -14,8 +14,9 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
           type="text"
           formControlName="dateInput"
           [qeydar-dateMask]="format"
-          (focus)="toggleDatePicker()"
-          (blur)="onInputBlur()"
+          (focus)="toggleDatePicker(null,$event)"
+          (blur)="onInputBlur(null,$event)"
+          (keypress)="onInputKeypress($event)"
           [class.focus]="isOpen"
           [placeholder]="getPlaceholder()"
         >
@@ -26,22 +27,23 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
             type="text"
             formControlName="startDateInput"
             [qeydar-dateMask]="format"
-            (focus)="toggleDatePicker('start')"
-            (blur)="onInputBlur('start')"
+            (focus)="toggleDatePicker('start',$event)"
+            (blur)="onInputBlur('start',$event)"
             [class.focus]="isOpen && activeInput === 'start'"
-            placeholder="Start date"
+            [placeholder]="getPlaceholder('start')"
           >
           <span class="range-separator">→</span>
           <input
             type="text"
             formControlName="endDateInput"
             [qeydar-dateMask]="format"
-            (focus)="toggleDatePicker('end')"
-            (blur)="onInputBlur('end')"
+            (focus)="toggleDatePicker('end',$event)"
+            (blur)="onInputBlur('end',$event)"
             [class.focus]="isOpen && activeInput === 'end'"
-            placeholder="End date"
+            [placeholder]="getPlaceholder('end')"
+            (keypress)="onInputKeypress($event)"
           >
-          <button class="calendar-button" (click)="toggleDatePicker()">
+          <button class="calendar-button" (click)="toggleDatePicker(null, $event)" tabindex="-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="#999">
               <path fill-rule="evenodd" clip-rule="evenodd" d="M6 2C6 1.44772 6.44772 1 7 1C7.55228 1 8 1.44772 8 2V3H16V2C16 1.44772 16.4477 1 17 1C17.5523 1 18 1.44772 18 2V3H19C20.6569 3 22 4.34315 22 6V20C22 21.6569 20.6569 23 19 23H5C3.34315 23 2 21.6569 2 20V6C2 4.34315 3.34315 3 5 3H6V2ZM16 5V6C16 6.55228 16.4477 7 17 7C17.5523 7 18 6.55228 18 6V5H19C19.5523 5 20 5.44772 20 6V9H4V6C4 5.44772 4.44772 5 5 5H6V6C6 6.55228 6.44772 7 7 7C7.55228 7 8 6.55228 8 6V5H16ZM4 11V20C4 20.5523 4.44772 21 5 21H19C19.5523 21 20 20.5523 20 20V11H4Z" fill="#999"/>
             </svg>
@@ -77,7 +79,6 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
     }
     input {
       font-family: 'vazirmatn';
-      direction: ltr;
       width: 100%;
       max-width: 300px;
       padding: 6px 10px;
@@ -149,6 +150,11 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
   @Input() minDate: Date | null = null;
   @Input() maxDate: Date | null = null;
+  @Input() lang: Lang_Locale = this.calendarType == 'jalali'? new lang_Fa(): new lang_En();
+  @Output() onFocus: EventEmitter<any> = new EventEmitter();
+  @Output() onBlur: EventEmitter<any> = new EventEmitter();
+  @Output() onChangeValue: EventEmitter<any> = new EventEmitter();
+
   @ViewChild(DatePickerPopupComponent) datePickerPopup: DatePickerPopupComponent;
 
   isOpen = false;
@@ -163,10 +169,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   constructor(private elementRef: ElementRef, private fb: FormBuilder) {
     this.form = this.fb.group({
-      dateInput: ['', [this.dateFormatValidator.bind(this), this.dateRangeValidator.bind(this)]],
-      startDateInput: ['', [this.dateFormatValidator.bind(this), this.dateRangeValidator.bind(this)]],
-      endDateInput: ['', [this.dateFormatValidator.bind(this), this.dateRangeValidator.bind(this)]]
-    }, { validators: this.rangeDateValidator.bind(this) });
+      dateInput: [''],
+      startDateInput: [''],
+      endDateInput: ['']
+    });
   }
 
   @HostListener('document:click', ['$event'])
@@ -185,6 +191,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (changes['calendarType']) {
       this.setDateAdapter();
       this.updateInputValue();
+      this.lang = this.calendarType == 'jalali'? new lang_Fa(): new lang_En();
     }
     if (changes['minDate'] || changes['maxDate']) {
       this.form.updateValueAndValidity();
@@ -249,28 +256,14 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       this.lastEmittedValue = newValue;
       this.onChange(newValue);
     }
-  }
-
-  updateSelectedDates(value: string) {
-    const format = this.getFormatForMode();
-    if (this.mode === 'range') {
-      const [start, end] = value.split(' - ').map(d => this.dateAdapter.parse(d.trim(), format));
-      if (start && end) {
-        this.selectedStartDate = this.clampDate(start);
-        this.selectedEndDate = this.clampDate(end);
-        this.onChange(value);
-      }
-    } else {
-      const date = this.dateAdapter.parse(value, format);
-      if (date) {
-        this.selectedDate = this.clampDate(date);
-        this.onChange(this.dateAdapter.format(this.selectedDate, format));
-      }
+    if (newValue) {
+      this.onChangeValue.emit(newValue);
     }
   }
 
-  onInputBlur(inputType?: 'start' | 'end') {
+  onInputBlur(inputType: 'start' | 'end', event: Event) {
     let inputValue: string | undefined;
+    let value;
     if (this.mode === 'range') {
       inputValue = inputType === 'start' ? this.form.get('startDateInput')?.value : this.form.get('endDateInput')?.value;
     } else {
@@ -279,6 +272,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
     if (typeof inputValue === 'string') {
       const correctedValue = this.validateAndCorrectInput(inputValue);
+      value = correctedValue;
       if (correctedValue !== inputValue) {
         this.isInternalChange = true;
         if (this.mode === 'range') {
@@ -314,6 +308,11 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
         this.isInternalChange = false;
       }
     }
+    this.onBlur.emit({
+      input: inputType,
+      event,
+      value
+    })
   }
 
   validateAndCorrectInput(value: string): string {
@@ -328,7 +327,11 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     return this.dateAdapter.format(date, this.format);
   }
 
-  toggleDatePicker(inputType?: 'start' | 'end') {
+  toggleDatePicker(inputType: 'start' | 'end', event: Event) {
+    this.onFocus.emit({
+      input: inputType,
+      event
+    })
     this.isOpen = true;
     this.activeInput = inputType || null;
   }
@@ -356,6 +359,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     }
     this.updateDatePickerPopup();
   }
+
   updateDatePickerPopup() {
     if (this.datePickerPopup) {
       if (this.mode === 'range') {
@@ -367,6 +371,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       this.datePickerPopup.generateCalendar();
     }
   }
+
   onDateRangeSelected(dateRange: { start: Date, end: Date }) {
     this.selectedStartDate = this.clampDate(dateRange.start);
     this.selectedEndDate = this.clampDate(dateRange.end);
@@ -392,44 +397,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     return null;
   }
 
-  dateRangeValidator(control: AbstractControl): ValidationErrors | null {
-    const value = control.value;
-    if (!value) return null;
-
-    const format = this.getFormatForMode();
-    const date = this.dateAdapter.parse(value, format);
-
-    if (date) {
-      if (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) {
-        return { minDate: { min: this.dateAdapter.format(this.minDate, format), actual: value } };
-      }
-      if (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate)) {
-        return { maxDate: { max: this.dateAdapter.format(this.maxDate, format), actual: value } };
-      }
-    }
-
-    return null;
-  }
-
-  rangeDateValidator(form: FormGroup): ValidationErrors | null {
-    if (this.mode !== 'range') return null;
-
-    const startDate = form.get('startDateInput')?.value;
-    const endDate = form.get('endDateInput')?.value;
-    const format = this.getFormatForMode();
-
-    if (startDate && endDate) {
-      const start = this.dateAdapter.parse(startDate, format);
-      const end = this.dateAdapter.parse(endDate, format);
-
-      if (start && end && this.dateAdapter.isAfter(start, end)) {
-        return { invalidRange: true };
-      }
-    }
-
-    return null;
-  }
-
   updateInputValue() {
     if (this.mode === 'range') {
       if (this.selectedStartDate) {
@@ -443,18 +410,22 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     }
   }
 
-  getPlaceholder(): string {
+  getPlaceholder(inputType: string = null): string {
     switch (this.mode) {
       case 'day':
-        return 'Select date';
+        return this.lang.selectDate;
       case 'month':
-        return 'Select month';
+        return this.lang.selectMonth;
       case 'year':
-        return 'Select year';
+        return this.lang.selectYear;
       case 'range':
-        return 'Select date range';
+        if (inputType == 'start') {
+          return this.lang.startDate;
+        } else {
+          return this.lang.endDate;
+        }
       default:
-        return 'Select date';
+        return this.lang.selectDate;
     }
   }
 
@@ -479,6 +450,12 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
         return this.format;
       default:
         return this.format;
+    }
+  }
+  // key controls
+  onInputKeypress(event: KeyboardEvent) {
+    if (!event.shiftKey && event.key == 'Tab' || !event.shiftKey && event.key == 'Enter') {  // Only handle forward tab, not shift+tab
+      this.isOpen = false;
     }
   }
   // ControlValueAccessor methods

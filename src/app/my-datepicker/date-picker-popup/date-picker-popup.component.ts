@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
-import { CustomLabels, DateRange, lang_En, lang_Fa, YearRange } from './models';
+import { CustomLabels, DateRange, lang_En, lang_Fa, Lang_Locale, YearRange } from './models';
 
 @Component({
   selector: 'app-date-picker-popup',
@@ -127,7 +127,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   yearList: number[] = [];
   yearRanges: Array<YearRange> = [];
   viewMode: 'days' | 'months' | 'years' = 'days';
-  lang = this.calendarType == 'jalali'? lang_Fa: lang_En;
+  lang: Lang_Locale = this.calendarType == 'jalali'? new lang_Fa: new lang_En;
 
   constructor(public el: ElementRef,private cdr: ChangeDetectorRef) {}
 
@@ -209,7 +209,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   setDateAdapter() {
     this.dateAdapter = this.calendarType === 'jalali' ? new JalaliDateAdapter() : new GregorianDateAdapter();
-    this.lang = this.calendarType == 'jalali'? lang_Fa: lang_En;
+    this.lang = this.calendarType == 'jalali'? new lang_Fa: new lang_En;
   }
 
   generateCalendar() {
@@ -524,9 +524,12 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   isPrevMonthDisabled(): boolean {
+    if (!this.minDate)
+      return false;
+
     if (this.viewMode == 'days') {
       const prevMonth = this.dateAdapter.getMonth(this.currentDate) - 1;
-      const minMonth = this.dateAdapter.getMonth(this.minDate);
+      const minMonth = this.dateAdapter.getMonth(this.minDate); 
       return minMonth > prevMonth;
     }
     if (this.viewMode == 'months') {
@@ -542,6 +545,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   isNextMonthDisabled(): boolean {
+    if (!this.maxDate)
+      return false;
+
     if (this.viewMode == 'days') {
       const nextMonth = this.dateAdapter.getMonth(this.currentDate) + 1;
       const maxMonth = this.dateAdapter.getMonth(this.maxDate);
