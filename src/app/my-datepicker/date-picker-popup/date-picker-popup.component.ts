@@ -50,12 +50,12 @@ import { CustomLabels, lang_En, lang_Fa } from './models';
       </div>
       <div class="calendar">
         <div class="header">
-          <button class="qeydar-calendar-nav-left" (click)="prevMonth()" [disabled]="isPrevMonthDisabled()"></button>
+          <button class="qeydar-calendar-nav-left" (click)="goPrev()" [disabled]="isPrevMonthDisabled()"></button>
           <span class="month-year">
             <span class="month-name" (click)="showMonthSelector()">{{ getCurrentMonthName() }}</span>
             <span class="year" (click)="showYearSelector()">{{ getCurrentYear() }}</span>
           </span>
-          <button class="qeydar-calendar-nav-right" (click)="nextMonth()" [disabled]="isNextMonthDisabled()"></button>
+          <button class="qeydar-calendar-nav-right" (click)="goNext()" [disabled]="isNextMonthDisabled()"></button>
         </div>
         <div *ngIf="viewMode == 'days'">
           <div *ngIf="viewMode === 'days'" class="weekdays">
@@ -216,28 +216,33 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   scrollToSelectedItem(id: number|null = null) {
-    let itemId;
-    if (this.viewMode != 'years') {
-      itemId = id || this.selectedDate?.getMonth()! + 1;
-    } else {
-      let currentYear = this.dateAdapter.getYear(this.selectedDate);
-      let currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
-      itemId = id || currentRange.start;
-    }
-    if (this.itemSelector && this.selectedDate) {
-      const selectedMonthElement = this.itemSelector.nativeElement.querySelector(`#selector_${itemId}`);
-      if (selectedMonthElement) {
-        selectedMonthElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    let itemId = id;
+    if (id == null) {
+      if (this.viewMode == 'days') {
+        itemId = this.dateAdapter.getMonth(this.selectedDate) + 1;
+      } else if(this.viewMode == 'months') {
+        itemId = this.dateAdapter.getYear(this.selectedDate);
+      } else {
+        let currentYear = this.dateAdapter.getYear(this.selectedDate);
+        let currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
+        itemId = id || currentRange.start;
       }
+    }
+
+    if (this.itemSelector && this.selectedDate) {
+      setTimeout(() => {
+        const selectedMonthElement = this.itemSelector.nativeElement.querySelector(`#selector_${itemId}`);
+        if (selectedMonthElement) {
+          selectedMonthElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 0);
     }
   }
 
   showMonthSelector() {
     this.viewMode = 'months';
     this.generateYearList(100);
-    setTimeout(() => {
-      this.scrollToSelectedItem(this.dateAdapter.getYear(this.selectedDate));
-    }, 0);
+    this.scrollToSelectedItem(this.dateAdapter.getYear(this.selectedDate));
   }
 
   selectMonth(month: number, closeAfterSelection: boolean = false) {
@@ -256,9 +261,8 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       }, 0);
       this.generateCalendar();
     }
-    setTimeout(() => {
-      this.scrollToSelectedItem(month);
-    }, 0);
+
+    this.scrollToSelectedItem(month);
   }
 
   selectDate(date: Date) {
@@ -298,6 +302,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     }
     this.currentDate = this.dateAdapter.addMonths(this.currentDate, -1);
     this.generateCalendar();
+    this.scrollToSelectedItem(this.dateAdapter.getMonth(this.currentDate)+1);
   }
 
   nextMonth() {
@@ -306,6 +311,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     }
     this.currentDate = this.dateAdapter.addMonths(this.currentDate, 1);
     this.generateCalendar();
+    this.scrollToSelectedItem(this.dateAdapter.getMonth(this.currentDate)+1);
   }
 
   isSelected(date: Date): boolean {
@@ -369,9 +375,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.viewMode = 'years';
     this.generateYearRanges();
     this.generateYearList();
-    setTimeout(() => {
-      this.scrollToSelectedItem();
-    }, 0);
+    this.scrollToSelectedItem();
   }
 
   generateYearRanges() {
@@ -388,7 +392,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     const currentYear = this.dateAdapter.getYear(this.selectedDate);
     const currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
     const startYear = this.dateAdapter.getYear(this.selectedDate) - (Math.round(length/2));
-    this.yearList = Array.from({length: length}, (_, i) => (currentRange?.start || startYear) + i);
+    let start = this.viewMode == 'years'? currentRange.start: startYear;
+    
+    this.yearList = Array.from({length: length}, (_, i) => start + i);
   }
 
   selectYearRange(startYear: number) {
@@ -477,5 +483,47 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   closeDatePicker() {
     this.closePicker.emit();
+  }
+
+  goPrev() {
+    if (this.viewMode == 'days') {
+      this.prevMonth();
+      return;
+    }
+
+    let id: number;
+    if (this.viewMode == 'months') {
+      this.currentDate = this.dateAdapter.addYears(this.currentDate, -1);
+      id = this.dateAdapter.getYear(this.currentDate);
+    }
+
+    if (this.viewMode == 'years') {
+      let yearStart = this.yearList[0] - 15;
+      this.yearList = Array.from({length: 15}, (_, i) => yearStart + i);
+      id = yearStart;
+    }
+
+    this.scrollToSelectedItem(id);
+  }
+
+  goNext() {
+    if (this.viewMode == 'days') {
+      this.nextMonth();
+      return;
+    }
+
+    let id: number;
+    if (this.viewMode == 'months') {
+      this.currentDate = this.dateAdapter.addYears(this.currentDate, 1);
+      id = this.dateAdapter.getYear(this.currentDate);
+    }
+
+    if (this.viewMode == 'years') {
+      let yearStart = this.yearList[14] + 1;
+      this.yearList = Array.from({length: 15}, (_, i) => yearStart + i);
+      id = yearStart;
+    }
+
+    this.scrollToSelectedItem(id);
   }
 }
