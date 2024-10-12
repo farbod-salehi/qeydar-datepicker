@@ -1,6 +1,6 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
-import { CustomLabels, lang_En, lang_Fa } from './models';
+import { CustomLabels, DateRange, lang_En, lang_Fa, YearRange } from './models';
 
 @Component({
   selector: 'app-date-picker-popup',
@@ -8,7 +8,7 @@ import { CustomLabels, lang_En, lang_Fa } from './models';
     <div class="date-picker-popup" [class.rtl]="rtl">
       <div *ngIf="mode === 'range'" class="period-selector">
         <button *ngFor="let period of periods" 
-                [class.active]="selectedPeriod === period.value"
+                [class.active]="isActivePeriod(period)"
                 (click)="selectPeriod(period)">
           {{ period.label }}
           <span *ngIf="period.arrow" class="arrow">→</span>
@@ -108,25 +108,28 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() minDate: Date | null = null;
   @Input() maxDate: Date | null = null;
   @Output() dateSelected = new EventEmitter<Date>();
-  @Output() dateRangeSelected = new EventEmitter<{ start: Date, end: Date }>();
+  @Output() dateRangeSelected = new EventEmitter<DateRange>();
   @Output() closePicker = new EventEmitter<void>();
 
   @ViewChild('itemSelector') itemSelector: ElementRef;
 
   dateAdapter: DateAdapter<Date>;
   weekDays: string[] = [];
-  periods: any = [];
+  periods: Array<CustomLabels> = [];
   days: Date[] = [];
   currentDate: Date;
   selectedPeriod: any = '';
   tempEndDate: Date | null = null;
   monthListNum = Array.from({ length: 12 }, (_, i) => i + 1);
+  /**
+   * Conventional: takes 15 numbers of the year type
+   */
   yearList: number[] = [];
-  yearRanges: { start: number, end: number }[] = [];
+  yearRanges: Array<YearRange> = [];
   viewMode: 'days' | 'months' | 'years' = 'days';
   lang = this.calendarType == 'jalali'? lang_Fa: lang_En;
 
-  constructor(public el: ElementRef) {}
+  constructor(public el: ElementRef,private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.setDateAdapter();
@@ -284,16 +287,41 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.currentDate = date;
   }
 
+  isActivePeriod(period: CustomLabels) {
+    let sameStart,sameEnd;
+    if (period.value != 'custom') {
+      sameStart = this.dateAdapter.isEqual(
+        this.dateAdapter.startOfDay(period.value[0] as Date),
+        this.dateAdapter.startOfDay(this.selectedStartDate)
+      );
+      sameEnd = this.dateAdapter.isEqual(
+        this.dateAdapter.startOfDay(period.value[1] as Date),
+        this.dateAdapter.startOfDay(this.selectedEndDate)
+      );
+      period.arrow = sameStart && sameEnd;
+      return sameStart && sameEnd;
+    }
+
+    period.arrow = !this.periods.find(p => p.arrow)?.arrow;
+
+    return period.arrow;
+  }
+
   selectPeriod(period: CustomLabels) {
     this.selectedPeriod = period.value;
     let start: Date, end: Date;
-
     if (period.value != 'custom') {
       start = period.value[0];
       end = period.value[1];
 
       this.dateRangeSelected.emit({ start, end });
+      return;
     }
+    // if is custom:
+    // this.periods = this.periods.map(p => {
+    //   // p.arrow = p.value == 'custom';
+    //   return p;
+    // })
   }
 
   prevMonth() {
@@ -462,23 +490,73 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   isYearDisabled(year: number): boolean {
-    const startOfYear = this.dateAdapter.createDate(year, 0, 1);
-    const endOfYear = this.dateAdapter.createDate(year, 11, 31);
-    return this.isDateDisabled(startOfYear) && this.isDateDisabled(endOfYear);
+    let isDisabled = false;
+    const minYear = this.dateAdapter.getYear(this.minDate);
+    const maxYear = this.dateAdapter.getYear(this.maxDate);
+    if (this.minDate) {
+      isDisabled = minYear > year;
+    }
+    if (this.maxDate) {
+      isDisabled = maxYear < year;
+    }
+
+    if (this.minDate && this.maxDate) {
+      isDisabled = minYear > year || maxYear < year;
+    }
+    return isDisabled;
   }
 
-  isYearRangeDisabled(yearRange: { start: number, end: number }): boolean {
-    return this.isYearDisabled(yearRange.start) && this.isYearDisabled(yearRange.end);
+  isYearRangeDisabled(yearRange: YearRange): boolean {
+    let isDisabled = false;
+    const minYear = this.dateAdapter.getYear(this.minDate);
+    const maxYear = this.dateAdapter.getYear(this.maxDate);
+    if (this.minDate) {
+      isDisabled = minYear > yearRange.end;
+    }
+    if (this.maxDate) {
+      isDisabled = maxYear < yearRange.start;
+    }
+
+    if (this.minDate && this.maxDate) {
+      isDisabled = minYear > yearRange.end || maxYear < yearRange.start;
+    }
+    return isDisabled;
   }
 
   isPrevMonthDisabled(): boolean {
-    const prevMonth = this.dateAdapter.addMonths(this.currentDate, -1);
-    return this.isDateDisabled(prevMonth);
+    if (this.viewMode == 'days') {
+      const prevMonth = this.dateAdapter.getMonth(this.currentDate) - 1;
+      const minMonth = this.dateAdapter.getMonth(this.minDate);
+      return minMonth > prevMonth;
+    }
+    if (this.viewMode == 'months') {
+      const prevYear = this.dateAdapter.getYear(this.currentDate)-1;
+      const minYear = this.dateAdapter.getYear(this.minDate);
+      return minYear > prevYear;
+    }
+
+    // for this.viewMode == 'years'
+    const prevYearRangEnd = this.yearList[this.yearList.length];
+    const minYear = this.dateAdapter.getYear(this.minDate);
+    return minYear > prevYearRangEnd;
   }
 
   isNextMonthDisabled(): boolean {
-    const nextMonth = this.dateAdapter.addMonths(this.currentDate, 1);
-    return this.isDateDisabled(nextMonth);
+    if (this.viewMode == 'days') {
+      const nextMonth = this.dateAdapter.getMonth(this.currentDate) + 1;
+      const maxMonth = this.dateAdapter.getMonth(this.maxDate);
+      return maxMonth < nextMonth;
+    }
+    if (this.viewMode == 'months') {
+      const nextYear = this.dateAdapter.getYear(this.currentDate)+1;
+      const maxYear = this.dateAdapter.getYear(this.maxDate);
+      return maxYear < nextYear;
+    }
+
+    // for this.viewMode == 'years'
+    const nextYearRangStart = this.yearList[0];
+    const maxYear = this.dateAdapter.getYear(this.maxDate);
+    return maxYear < nextYearRangStart;
   }
 
   closeDatePicker() {

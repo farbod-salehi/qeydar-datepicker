@@ -7,6 +7,8 @@
      [(ngModel)]="myDate"
      [mode]="rangPicker? 'range': 'month'"
      [format]="'yyyy/MM/dd'"
+     [maxDate]="maxDate"
+     [minDate]="minDate"
      [mode]="'day'"
     (ngModelChange)="onChange($event)"></qeydar-date-picker>
     <br>

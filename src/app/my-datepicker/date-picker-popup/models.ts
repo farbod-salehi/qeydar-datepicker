@@ -1,6 +1,17 @@
 export interface CustomLabels {
     label: string,
-    value: Array<Date>|'custom'
+    value: Array<Date>|'custom',
+    arrow?: boolean
+}
+
+export interface YearRange {
+    start: number,
+    end: number
+}
+
+export interface DateRange {
+    start: Date,
+    end: Date
 }
 
 export enum lang_Fa {

@@ -36,7 +36,9 @@ import {
   isValid as isValidGregorian,
   max as maxGregorian,
   setYear as setYearGregorian,
-  parseISO
+  parseISO,
+  startOfDay,
+  isEqual
 } from 'date-fns';
 
 export interface DateAdapter<D> {
@@ -63,12 +65,14 @@ export interface DateAdapter<D> {
   isSameYear(date1: D, date2: D): boolean;
   isAfter(date1: D, date2: D): boolean;
   isBefore(date1: D, date2: D): boolean;
+  isEqual(date1: D, date2: D): boolean;
   startOfMonth(date: D): D;
   endOfMonth(date: D): D;
   startOfWeek(date: D): D;
   isValidFormat(dateString: string, formatString: string): boolean;
   max(dates: D[]): D;
   setYear(date: D, year: number): D;
+  startOfDay (date: D): D;
 }
 
 export class JalaliDateAdapter implements DateAdapter<Date> {
@@ -153,8 +157,8 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
   getDayOfWeekNames(style: 'long' | 'short' | 'narrow'): string[] {
     const formats = {
       long: 'EEEE',
-      short: 'EEEEEE',
-      narrow: 'EEEEE'
+      short: 'EEEEE',
+      narrow: 'EEEEEE'
     };
     return Array.from({ length: 7 }, (_, i) =>
       formatJalali(addDaysJalali(startOfWeekJalali(new Date()), i), formats[style])
@@ -198,6 +202,10 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
     return isBeforeJalali(date1, date2);
   }
 
+  isEqual(date1: Date, date2: Date): boolean {
+    return isEqual(date1, date2);
+  }
+
   startOfMonth(date: Date): Date {
     return startOfMonthJalali(date);
   }
@@ -230,6 +238,10 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
 
   setYear(date: Date, year: number): Date {
     return setYearJalali(date, year)
+  }
+
+  startOfDay(date: Date): Date {
+    return startOfDay(date);
   }
 }
 
@@ -356,6 +368,10 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
     return isBeforeGregorian(date1, date2);
   }
 
+  isEqual(date1: Date, date2: Date): boolean {
+    return isEqual(date1, date2);
+  }
+
   startOfMonth(date: Date): Date {
     return startOfMonthGregorian(date);
   }
@@ -388,5 +404,9 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
 
   setYear(date: Date, year: number): Date {
     return setYearGregorian(date, year);
+  }
+
+  startOfDay(date: Date): Date {
+    return startOfDay(date);
   }
 }
