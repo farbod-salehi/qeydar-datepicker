@@ -302,9 +302,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       return sameStart && sameEnd;
     }
 
-    period.arrow = !this.periods.find(p => p.arrow)?.arrow;
+    // period.arrow = !this.periods.find(p => p.arrow)?.arrow;
 
-    return period.arrow;
+    return false;
   }
 
   selectPeriod(period: CustomLabels) {

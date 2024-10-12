@@ -6,12 +6,14 @@ import { DatePickerComponent } from './my-datepicker/my-datepicker.component';
 import { DatePickerPopupComponent } from './my-datepicker/date-picker-popup/date-picker-popup.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { DateMaskDirective } from './my-datepicker/input-mask.directive';
 
 @NgModule({
   declarations: [
     AppComponent,
     DatePickerComponent,
-    DatePickerPopupComponent
+    DatePickerPopupComponent,
+    DateMaskDirective
   ],
   imports: [
     BrowserModule,

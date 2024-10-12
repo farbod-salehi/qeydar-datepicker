@@ -7,7 +7,7 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AppComponent implements OnInit{
   title = 'my-datepicker';
-  myDate = '1403/07/11';
+  myDate = { start: "1403/07/16", end: "1403/07/24" };
   rtl = true;
   rangPicker = false;
   maxDate = new Date(2024,11,16);
