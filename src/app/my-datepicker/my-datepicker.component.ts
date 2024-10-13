@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, forwardRef, Input, OnInit, OnChang
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { slideMotion } from './animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
-import { CustomLabels, lang_En, lang_Fa, Lang_Locale } from './date-picker-popup/models';
+import { CustomLabels, lang_En, lang_Fa, Lang_Locale, RangeInputLabels } from './date-picker-popup/models';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
 
 @Component({
@@ -10,19 +10,30 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
   template: `
     <div class="date-picker-wrapper" [formGroup]="form">
       <ng-container *ngIf="mode !== 'range'; else rangeMode">
-        <input
-          #datePickerInput
-          type="text"
-          formControlName="dateInput"
-          [qeydar-dateMask]="format"
-          (focus)="toggleDatePicker(null,$event)"
-          (blur)="onInputBlur(null,$event)"
-          (keypress)="onInputKeypress($event)"
-          [class.focus]="isOpen"
-          [placeholder]="getPlaceholder()"
-        >
+        <div>
+          <label for="dateInput" *ngIf="inputLabel">{{ inputLabel }}</label>
+          <input
+            #datePickerInput
+            type="text"
+            formControlName="dateInput"
+            [qeydar-dateMask]="format"
+            (focus)="toggleDatePicker(null,$event)"
+            (blur)="onInputBlur(null,$event)"
+            (keydown)="onInputKeydown($event)"
+            [class.focus]="isOpen"
+            [placeholder]="getPlaceholder()"
+          >
+        </div>
       </ng-container>
       <ng-template #rangeMode>
+        <div *ngIf="rangeInputLabels" class="range-input-labels">
+          <div class="start-label">
+            <label for="startDateInput">{{ rangeInputLabels.start }}</label>
+          </div>
+          <div class="end-label">
+            <label for="endDateInput">{{ rangeInputLabels.end }}</label>
+          </div>
+        </div>
         <div class="range-input-container">
           <input
             #datePickerInput
@@ -43,7 +54,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
             (blur)="onInputBlur('end',$event)"
             [class.focus]="isOpen && activeInput === 'end'"
             [placeholder]="getPlaceholder('end')"
-            (keypress)="onInputKeypress($event)"
+            (keydown)="onInputKeydown($event)"
           >
           <button class="calendar-button" (click)="toggleDatePicker(null, $event)" tabindex="-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="#999">
@@ -73,6 +84,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
         (dateSelected)="onDateSelected($event)"
         (dateRangeSelected)="onDateRangeSelected($event)"
         (closePicker)="isOpen = false"
+        tabindex="-1"
       ></app-date-picker-popup>
     </div>
   `,
@@ -133,6 +145,16 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
       cursor: pointer;
       font-size: 16px;
     }
+    .range-input-labels {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: #444;
+      padding: 0px 5px 5px;
+    }
+    .end-label {
+      width: 49%;
+    }
     // rtl
     :dir(rtl) .range-separator{
       rotate: 180deg;
@@ -161,6 +183,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() lang: Lang_Locale = this.calendarType == 'jalali'? new lang_Fa(): new lang_En();
   @Input() cssClass: string = '';
   @Input() footerDescription: string = '';
+  @Input() rangeInputLabels: RangeInputLabels;
+  @Input() inputLabel: string;
 
   @Output() onFocus: EventEmitter<any> = new EventEmitter();
   @Output() onBlur: EventEmitter<any> = new EventEmitter();
@@ -476,7 +500,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     }
   }
   // key controls
-  onInputKeypress(event: KeyboardEvent) {
+  onInputKeydown(event: KeyboardEvent) {
     if (!event.shiftKey && event.key == 'Tab' || !event.shiftKey && event.key == 'Enter') {  // Only handle forward tab, not shift+tab
       this.isOpen = false;
     }
@@ -500,6 +524,14 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       this.popupPosition.horizontal = spaceRight >= popupRect.width || spaceRight > spaceLeft ? 'left' : 'right';
   }
 
+  private parseDateValue(value: any): Date | null {
+    if (value instanceof Date) {
+      return value;
+    } else {
+      return this.dateAdapter.parse(value, this.format);
+    }
+  }
+
   // ControlValueAccessor methods
   onChange: any = () => { };
   onTouch: any = () => { };
@@ -508,15 +540,15 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (value) {
       this.isInternalChange = true;
       if (this.mode === 'range' && typeof value === 'object') {
-        this.selectedStartDate = this.dateAdapter.parse(value.start, this.format);
-        this.selectedEndDate = this.dateAdapter.parse(value.end, this.format);
-        this.form.get('startDateInput')?.setValue(value.start, { emitEvent: false });
-        this.form.get('endDateInput')?.setValue(value.end, { emitEvent: false });
+        this.selectedStartDate = this.parseDateValue(value.start);
+        this.selectedEndDate = this.parseDateValue(value.end);
+        this.form.get('startDateInput')?.setValue(this.dateAdapter.format(this.selectedStartDate, this.format), { emitEvent: false });
+        this.form.get('endDateInput')?.setValue(this.dateAdapter.format(this.selectedEndDate, this.format), { emitEvent: false });
       } else if (this.mode !== 'range') {
         const parsedDate = this.dateAdapter.parse(value, this.format);
         if (parsedDate) {
           this.selectedDate = this.clampDate(parsedDate);
-          this.form.get('dateInput')?.setValue(value, { emitEvent: false });
+          this.form.get('dateInput')?.setValue(this.dateAdapter.format(this.selectedDate, this.format), { emitEvent: false });
         }
       }
       this.lastEmittedValue = value;

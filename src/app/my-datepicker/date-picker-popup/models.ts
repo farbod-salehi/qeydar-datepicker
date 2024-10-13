@@ -14,6 +14,11 @@ export interface DateRange {
     end: Date
 }
 
+export interface RangeInputLabels {
+    start: string,
+    end: string,
+}
+
 export interface Lang_Locale {
     lastHour: string;
     lastDay: string;

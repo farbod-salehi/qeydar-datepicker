@@ -8,6 +8,7 @@ export class DateMaskDirective {
 
   private delimiter: string;
   private parts: string[];
+  private lastValue: string = '';
 
   constructor(private el: ElementRef) {
     this.delimiter = this.getDelimiter();
@@ -20,27 +21,56 @@ export class DateMaskDirective {
     const cursorPosition = input.selectionStart || 0;
     let value = input.value.replace(/[^0-9/\-\.]/g, '');
     
+    // Check if a character was removed
+    if (value.length < this.lastValue.length) {
+      // Allow removal of delimiters and characters before them
+      this.lastValue = value;
+      return;
+    }
+
     const parts = value.split(this.delimiter);
     const formattedParts: string[] = [];
-    // for backspace
-    if (!event.data) {
-        return;
-    }
+
+    let shouldAddDelimiter = false;
+    let totalLength = 0;
+    let newCursorPosition = cursorPosition;
+
     for (let i = 0; i < this.parts.length; i++) {
       if (parts[i]) {
-        const part = this.validatePart(parts[i], this.parts[i]);
-        formattedParts.push(part.padStart(this.getPartLength(this.parts[i]), '0'));
+        let part = parts[i];
+        const expectedLength = this.getPartLength(this.parts[i]);
+        
+        if (part.length >= expectedLength) {
+          part = this.validatePart(part.slice(0, expectedLength), this.parts[i]);
+          shouldAddDelimiter = true;
+        }
+
+        formattedParts.push(part);
+        totalLength += part.length;
+
+        if (shouldAddDelimiter && i < this.parts.length - 1) {
+          formattedParts.push(this.delimiter);
+          totalLength += this.delimiter.length;
+          shouldAddDelimiter = false;
+
+          // If cursor was at the end of this part, move it after the delimiter
+          if (cursorPosition === totalLength - this.delimiter.length) {
+            newCursorPosition = totalLength;
+          }
+        }
       } else {
         break;
       }
     }
 
-    const formattedValue = formattedParts.join(this.delimiter);
+    const formattedValue = formattedParts.join('');
     input.value = formattedValue;
 
-    // Adjust cursor position
-    const newPosition = this.getAdjustedCursorPosition(value, formattedValue, cursorPosition);
-    input.setSelectionRange(newPosition, newPosition);
+    // Set cursor position
+    newCursorPosition = Math.min(newCursorPosition, totalLength);
+    input.setSelectionRange(newCursorPosition, newCursorPosition);
+
+    this.lastValue = formattedValue;
   }
 
   @HostListener('keydown', ['$event'])
@@ -49,14 +79,17 @@ export class DateMaskDirective {
       const input = event.target as HTMLInputElement;
       const cursorPosition = input.selectionStart || 0;
       const parts = input.value.split(this.delimiter);
-      const currentPartIndex = parts.length - 1;
+      const currentPartIndex = this.getCurrentPartIndex(input.value, cursorPosition);
 
-      if (currentPartIndex < this.parts.length - 1 && parts[currentPartIndex].length > 0) {
+      if (currentPartIndex < this.parts.length - 1) {
         const currentPart = this.validatePart(parts[currentPartIndex], this.parts[currentPartIndex]);
-        parts[currentPartIndex] = currentPart.padStart(this.getPartLength(this.parts[currentPartIndex]), '0');
+        parts[currentPartIndex] = currentPart;
         
-        input.value = parts.join(this.delimiter) + (currentPartIndex < this.parts.length - 1 ? this.delimiter : '');
-        input.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
+        const newValue = parts.slice(0, currentPartIndex + 1).join(this.delimiter) + this.delimiter;
+        input.value = newValue + parts.slice(currentPartIndex + 1).join(this.delimiter);
+        
+        const newPosition = newValue.length;
+        input.setSelectionRange(newPosition, newPosition);
         event.preventDefault();
       }
     }
@@ -68,14 +101,15 @@ export class DateMaskDirective {
   }
 
   private validatePart(value: string, format: string): string {
+    if (value === '') return '';  // Return empty string if value is empty
     const numValue = parseInt(value, 10);
     switch (format) {
       case 'MM':
-        return Math.min(Math.max(numValue, 1), 12).toString();
+        return Math.min(Math.max(numValue, 1), 12).toString().padStart(2, '0');
       case 'dd':
-        return Math.min(Math.max(numValue, 1), 31).toString();
+        return Math.min(Math.max(numValue, 1), 31).toString().padStart(2, '0');
       case 'yyyy':
-        return value.slice(0, 4);
+        return value.padStart(4, '0');
       default:
         return value;
     }
@@ -93,17 +127,18 @@ export class DateMaskDirective {
     }
   }
 
-  private getAdjustedCursorPosition(oldValue: string, newValue: string, oldPosition: number): number {
-    let newPosition = oldPosition;
-    for (let i = 0; i < newPosition; i++) {
-      if (oldValue[i] !== newValue[i]) {
-        if (newValue[i] === '0' || newValue[i] === this.delimiter) {
-          newPosition++;
-        } else {
-          break;
-        }
+  private getCurrentPartIndex(value: string, cursorPosition: number): number {
+    const parts = value.split(this.delimiter);
+    let currentIndex = 0;
+    let totalLength = 0;
+
+    for (let i = 0; i < parts.length; i++) {
+      totalLength += parts[i].length;
+      if (cursorPosition <= totalLength + i * this.delimiter.length) {
+        return i;
       }
     }
-    return newPosition;
+
+    return parts.length - 1;
   }
 }
