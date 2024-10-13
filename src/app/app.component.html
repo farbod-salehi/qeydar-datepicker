@@ -18,6 +18,8 @@
         [mode]="rangPicker? 'range': 'day'"
         [format]="'yyyy/MM/dd'"
         [mode]="'day'"
-        (ngModelChange)="onChange($event)">
+        (ngModelChange)="onChange($event)"
+        [footerDescription]="'فقط برای تست.'"
+    >
     </qeydar-date-picker>
 </div>

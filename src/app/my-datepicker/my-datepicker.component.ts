@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter } from '@angular/core';
+import { Component, ElementRef, HostListener, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { slideMotion } from './animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
@@ -11,6 +11,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
     <div class="date-picker-wrapper" [formGroup]="form">
       <ng-container *ngIf="mode !== 'range'; else rangeMode">
         <input
+          #datePickerInput
           type="text"
           formControlName="dateInput"
           [qeydar-dateMask]="format"
@@ -24,6 +25,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
       <ng-template #rangeMode>
         <div class="range-input-container">
           <input
+            #datePickerInput
             type="text"
             formControlName="startDateInput"
             [qeydar-dateMask]="format"
@@ -53,6 +55,10 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
       <app-date-picker-popup
         *ngIf="isOpen"
         [rtl]="rtl"
+        [class.up]="popupPosition.vertical === 'up'"
+        [class.down]="popupPosition.vertical === 'down'"
+        [class.left]="popupPosition.horizontal === 'left'"
+        [class.right]="popupPosition.horizontal === 'right'"
         [@slideMotion]="'enter'"
         [selectedDate]="selectedDate"
         [selectedStartDate]="selectedStartDate"
@@ -62,6 +68,8 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
         [calendarType]="calendarType"
         [minDate]="minDate"
         [maxDate]="maxDate"
+        [cssClass]="cssClass"
+        [footerDescription]="footerDescription"
         (dateSelected)="onDateSelected($event)"
         (dateRangeSelected)="onDateRangeSelected($event)"
         (closePicker)="isOpen = false"
@@ -151,10 +159,14 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() minDate: Date | null = null;
   @Input() maxDate: Date | null = null;
   @Input() lang: Lang_Locale = this.calendarType == 'jalali'? new lang_Fa(): new lang_En();
+  @Input() cssClass: string = '';
+  @Input() footerDescription: string = '';
+
   @Output() onFocus: EventEmitter<any> = new EventEmitter();
   @Output() onBlur: EventEmitter<any> = new EventEmitter();
   @Output() onChangeValue: EventEmitter<any> = new EventEmitter();
 
+  @ViewChild('datePickerInput') datePickerInput: ElementRef;
   @ViewChild(DatePickerPopupComponent) datePickerPopup: DatePickerPopupComponent;
 
   isOpen = false;
@@ -164,10 +176,14 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   form: FormGroup;
   dateAdapter: DateAdapter<Date>;
   activeInput: 'start' | 'end' | null = null;
+  popupPosition: { vertical: 'up' | 'down', horizontal: 'left' | 'right' } = {
+    vertical: 'down',
+    horizontal: 'left'
+  };
   private isInternalChange = false;
   private lastEmittedValue: any = null;
 
-  constructor(private elementRef: ElementRef, private fb: FormBuilder) {
+  constructor(private elementRef: ElementRef, private fb: FormBuilder, private renderer: Renderer2) {
     this.form = this.fb.group({
       dateInput: [''],
       startDateInput: [''],
@@ -334,6 +350,13 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     })
     this.isOpen = true;
     this.activeInput = inputType || null;
+
+    if (this.isOpen) {
+      // Use setTimeout to ensure the popup is rendered before calculating its position
+      setTimeout(() => {
+        this.calculateOptimalPosition();
+      });
+    }
   }
 
   onDateSelected(date: Date) {
@@ -458,6 +481,25 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       this.isOpen = false;
     }
   }
+
+  private calculateOptimalPosition(): void {
+      const inputRect = this.datePickerInput.nativeElement.getBoundingClientRect();
+      const popupRect = this.datePickerPopup.el.nativeElement.querySelector('.date-picker-popup').getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+  
+      const spaceBelow = viewportHeight - inputRect.bottom;
+      const spaceAbove = inputRect.top;
+      const spaceRight = viewportWidth - inputRect.left;
+      const spaceLeft = inputRect.right;
+
+      // Vertical positioning
+      this.popupPosition.vertical = spaceBelow >= popupRect.height || spaceBelow > spaceAbove ? 'down' : 'up';
+
+      // Horizontal positioning
+      this.popupPosition.horizontal = spaceRight >= popupRect.width || spaceRight > spaceLeft ? 'left' : 'right';
+  }
+
   // ControlValueAccessor methods
   onChange: any = () => { };
   onTouch: any = () => { };

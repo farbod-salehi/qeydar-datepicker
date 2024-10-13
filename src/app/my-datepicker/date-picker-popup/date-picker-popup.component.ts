@@ -5,93 +5,104 @@ import { CustomLabels, DateRange, lang_En, lang_Fa, Lang_Locale, YearRange } fro
 @Component({
   selector: 'app-date-picker-popup',
   template: `
-    <div class="date-picker-popup" [class.rtl]="rtl">
-      <div *ngIf="mode === 'range'" class="period-selector">
-        <button *ngFor="let period of periods" 
-                [class.active]="isActivePeriod(period)"
-                (click)="selectPeriod(period)">
-          {{ period.label }}
-          <span *ngIf="period.arrow" class="arrow">→</span>
-        </button>
-      </div>
-      <div *ngIf="mode !== 'range'" class="side-selector" #itemSelector>
-        <ng-container *ngIf="viewMode == 'days'">
-          <button 
-            *ngFor="let month of monthListNum" 
-            [id]="'selector_'+month"
-            [class.active]="isActiveMonth(month)"
-            [disabled]="isMonthDisabled(month)"
-            (click)="selectMonth(month, false)">
-            {{ getMonthName(month) }}
+    <div class="date-picker-popup" [class.rtl]="rtl" [class]="cssClass">
+      <div class="date-picker-content">
+        <div *ngIf="mode === 'range'" class="period-selector">
+          <button *ngFor="let period of periods" 
+                  [class.active]="isActivePeriod(period)"
+                  (click)="selectPeriod(period)">
+            {{ period.label }}
+            <span *ngIf="period.arrow" class="arrow">→</span>
           </button>
-        </ng-container>
-        <ng-container *ngIf="viewMode == 'months'">
-          <button
-            *ngFor="let year of yearList" 
-            [id]="'selector_'+year"
-            [class.active]="isActiveYear(year)"
-            [disabled]="isYearDisabled(year)"
-            (click)="selectYear(year, true)"
-          >
-            {{ year }}
-          </button>
-        </ng-container>
-        <ng-container *ngIf="viewMode == 'years'">
-          <button
-            *ngFor="let yearRange of yearRanges" 
-            [id]="'selector_'+yearRange.start"
-            [class.active]="isActiveYearRange(yearRange.start)"
-            [disabled]="isYearRangeDisabled(yearRange)"
-            (click)="selectYearRange(yearRange.start)"
-          >
-            {{ yearRange.start }} - {{ yearRange.end }}
-          </button>
-        </ng-container>
-      </div>
-      <div class="calendar">
-        <div class="header">
-          <button class="qeydar-calendar-nav-left" (click)="goPrev()" [disabled]="isPrevMonthDisabled()"></button>
-          <span class="month-year">
-            <span class="month-name" (click)="showMonthSelector()">{{ getCurrentMonthName() }}</span>
-            <span class="year" (click)="showYearSelector()">{{ getCurrentYear() }}</span>
-          </span>
-          <button class="qeydar-calendar-nav-right" (click)="goNext()" [disabled]="isNextMonthDisabled()"></button>
         </div>
-        <div *ngIf="viewMode == 'days'">
-          <div *ngIf="viewMode === 'days'" class="weekdays">
-            <span *ngFor="let day of getWeekDays()">{{ day }}</span>
+        <div *ngIf="mode !== 'range'" class="side-selector" #itemSelector>
+          <ng-container *ngIf="viewMode == 'days'">
+            <button 
+              *ngFor="let month of monthListNum" 
+              [id]="'selector_'+month"
+              [class.active]="isActiveMonth(month)"
+              [disabled]="isMonthDisabled(month)"
+              (click)="selectMonth(month, false)">
+              {{ getMonthName(month) }}
+            </button>
+          </ng-container>
+          <ng-container *ngIf="viewMode == 'months'">
+            <button
+              *ngFor="let year of yearList" 
+              [id]="'selector_'+year"
+              [class.active]="isActiveYear(year)"
+              [disabled]="isYearDisabled(year)"
+              (click)="selectYear(year, true)"
+            >
+              {{ year }}
+            </button>
+          </ng-container>
+          <ng-container *ngIf="viewMode == 'years'">
+            <button
+              *ngFor="let yearRange of yearRanges" 
+              [id]="'selector_'+yearRange.start"
+              [class.active]="isActiveYearRange(yearRange.start)"
+              [disabled]="isYearRangeDisabled(yearRange)"
+              (click)="selectYearRange(yearRange.start)"
+            >
+              {{ yearRange.start }} - {{ yearRange.end }}
+            </button>
+          </ng-container>
+        </div>
+        <div class="calendar">
+          <div class="header">
+            <button class="qeydar-calendar-nav-left" (click)="goPrev()" [disabled]="isPrevMonthDisabled()"></button>
+            <span class="month-year">
+              <span class="month-name" (click)="showMonthSelector()">{{ getCurrentMonthName() }}</span>
+              <span class="year" (click)="showYearSelector()">{{ getCurrentYear() }}</span>
+            </span>
+            <button class="qeydar-calendar-nav-right" (click)="goNext()" [disabled]="isNextMonthDisabled()"></button>
           </div>
-          <div *ngIf="viewMode === 'days'" class="days">
-            <button *ngFor="let day of days" 
-                  [class.different-month]="!isSameMonth(day, currentDate)"
-                  [class.selected]="isSelected(day)"
-                  [class.in-range]="isInRange(day)"
-                  [class.range-start]="isRangeStart(day)"
-                  [class.range-end]="isRangeEnd(day)"
-                  [class.today]="isToday(day)"
-                  [disabled]="isDateDisabled(day)"
-                  (click)="selectDate(day)"
-                  (mouseenter)="onMouseEnter(day,$event)">
-              {{ dateAdapter.getDate(day) }}
+          <div *ngIf="viewMode == 'days'">
+            <div *ngIf="viewMode === 'days'" class="weekdays">
+              <span *ngFor="let day of getWeekDays()">{{ day }}</span>
+            </div>
+            <div *ngIf="viewMode === 'days'" class="days">
+              <button *ngFor="let day of days" 
+                    [class.different-month]="!isSameMonth(day, currentDate)"
+                    [class.selected]="isSelected(day)"
+                    [class.in-range]="isInRange(day)"
+                    [class.range-start]="isRangeStart(day)"
+                    [class.range-end]="isRangeEnd(day)"
+                    [class.today]="isToday(day)"
+                    [disabled]="isDateDisabled(day)"
+                    (click)="selectDate(day)"
+                    (mouseenter)="onMouseEnter(day,$event)">
+                {{ dateAdapter.getDate(day) }}
+              </button>
+            </div>
+          </div>
+          <div *ngIf="viewMode === 'months' || mode == 'month'" class="months">
+            <button *ngFor="let month of monthListNum" 
+                    [class.selected]="month === dateAdapter.getMonth(currentDate) + 1"
+                    [disabled]="isMonthDisabled(month)"
+                    (click)="selectMonth(month,false)">
+              {{ getMonthName(month) }}
+            </button>
+          </div>
+          <div *ngIf="viewMode === 'years' || mode == 'year'" class="years">
+            <button *ngFor="let year of yearList" 
+                    [class.selected]="year === dateAdapter.getYear(currentDate)"
+                    [disabled]="isYearDisabled(year)"
+                    (click)="selectYear(year)">
+              {{ year }}
             </button>
           </div>
         </div>
-        <div *ngIf="viewMode === 'months' || mode == 'month'" class="months">
-          <button *ngFor="let month of monthListNum" 
-                  [class.selected]="month === dateAdapter.getMonth(currentDate) + 1"
-                  [disabled]="isMonthDisabled(month)"
-                  (click)="selectMonth(month,false)">
-            {{ getMonthName(month) }}
-          </button>
+      </div>
+      <div class="date-picker-footer" *ngIf="footerDescription">
+        <div class="footer-description">
+          {{ footerDescription }}
         </div>
-        <div *ngIf="viewMode === 'years' || mode == 'year'" class="years">
-          <button *ngFor="let year of yearList" 
-                  [class.selected]="year === dateAdapter.getYear(currentDate)"
-                  [disabled]="isYearDisabled(year)"
-                  (click)="selectYear(year)">
-            {{ year }}
-          </button>
-        </div>
+        <!-- <div class="footer-actions">
+          <button class="footer-button" (click)="onTodayClick()">{{ todayLabel }}</button>
+          <button class="footer-button" (click)="onClearClick()">{{ clearLabel }}</button>
+        </div> -->
       </div>
     </div>
   `,
@@ -107,6 +118,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
   @Input() minDate: Date | null = null;
   @Input() maxDate: Date | null = null;
+  @Input() cssClass: string = '';
+  @Input() footerDescription: string = '';
+
   @Output() dateSelected = new EventEmitter<Date>();
   @Output() dateRangeSelected = new EventEmitter<DateRange>();
   @Output() closePicker = new EventEmitter<void>();
@@ -317,11 +331,6 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       this.dateRangeSelected.emit({ start, end });
       return;
     }
-    // if is custom:
-    // this.periods = this.periods.map(p => {
-    //   // p.arrow = p.value == 'custom';
-    //   return p;
-    // })
   }
 
   prevMonth() {
