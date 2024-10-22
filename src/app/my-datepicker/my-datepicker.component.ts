@@ -315,7 +315,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     ) {
       return this.close();
     }
-    this.focus();
+    if (this.isOpen)
+      this.focus();
   }
 
   ngOnInit() {
