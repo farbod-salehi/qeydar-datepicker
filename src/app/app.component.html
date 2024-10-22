@@ -1,6 +1,6 @@
 <button (click)="changeDirection()">to rtl</button>
 <button (click)="rangPicker = !rangPicker">rangpicker on/off</button>
-<div [dir]="rtl? 'rtl': 'ltr'" class="cnt">
+<div [dir]="rtl? 'rtl': 'ltr'" class="cnt1">
     <qeydar-date-picker
      [rtl]="rtl"
      [calendarType]="rtl? 'jalali':'georgian'"
@@ -12,6 +12,18 @@
      [mode]="'day'"
     (ngModelChange)="onChange($event)"></qeydar-date-picker>
     <input type="text">
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
     <qeydar-date-picker
         [rtl]="rtl"
         [calendarType]="rtl? 'jalali':'georgian'"
@@ -20,7 +32,6 @@
         [format]="'yyyy/MM/dd'"
         [mode]="'day'"
         (ngModelChange)="onChange($event)"
-        [footerDescription]="'فقط برای تست.'"
     >
     </qeydar-date-picker>
 </div>
