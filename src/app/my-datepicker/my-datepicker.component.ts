@@ -1,9 +1,14 @@
-import { Component, ElementRef, HostListener, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2 } from '@angular/core';
+import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { slideMotion } from './animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
 import { CustomLabels, lang_En, lang_Fa, Lang_Locale, RangeInputLabels } from './date-picker-popup/models';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
+import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair, HorizontalConnectionPos, VerticalConnectionPos } from '@angular/cdk/overlay';
+import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './overlay/overlay';
+import { DOCUMENT } from '@angular/common';
+
+export type NzPlacement = 'bottomLeft' | 'bottomRight' | 'topLeft' | 'topRight';
 
 @Component({
   selector: 'qeydar-date-picker',
@@ -18,6 +23,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
             formControlName="dateInput"
             [qeydar-dateMask]="format"
             (focus)="toggleDatePicker(null,$event)"
+            (focusout)="onFocusout($event)"
             (blur)="onInputBlur(null,$event)"
             (keydown)="onInputKeydown($event)"
             [class.focus]="isOpen"
@@ -41,6 +47,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
             formControlName="startDateInput"
             [qeydar-dateMask]="format"
             (focus)="toggleDatePicker('start',$event)"
+            (focusout)="onFocusout($event)"
             (blur)="onInputBlur('start',$event)"
             [class.focus]="isOpen && activeInput === 'start'"
             [placeholder]="getPlaceholder('start')"
@@ -51,6 +58,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
             formControlName="endDateInput"
             [qeydar-dateMask]="format"
             (focus)="toggleDatePicker('end',$event)"
+            (focusout)="onFocusout($event)"
             (blur)="onInputBlur('end',$event)"
             [class.focus]="isOpen && activeInput === 'end'"
             [placeholder]="getPlaceholder('end')"
@@ -63,29 +71,54 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
           </button>
         </div>
       </ng-template>
-      <app-date-picker-popup
-        *ngIf="isOpen"
-        [rtl]="rtl"
-        [class.up]="popupPosition.vertical === 'up'"
-        [class.down]="popupPosition.vertical === 'down'"
-        [class.left]="popupPosition.horizontal === 'left'"
-        [class.right]="popupPosition.horizontal === 'right'"
+      <ng-template #inlineMode>
+        <div
+          class="dp-dropdown"
+          [class.qeydar-picker-dropdown-rtl]="rtl"
+          [class.qeydar-picker-dropdown-placement-bottomLeft]="currentPositionY === 'bottom' && currentPositionX === 'start'"
+          [class.qeydar-picker-dropdown-placement-topLeft]="currentPositionY === 'top' && currentPositionX === 'start'"
+          [class.qeydar-picker-dropdown-placement-bottomRight]="currentPositionY === 'bottom' && currentPositionX === 'end'"
+          [class.qeydar-picker-dropdown-placement-topRight]="currentPositionY === 'top' && currentPositionX === 'end'"
+          [class.qeydar-picker-dropdown-range]="isRange"
+        >
+          <app-date-picker-popup
+            [rtl]="rtl"
+            [@slideMotion]="'enter'"
+            [selectedDate]="selectedDate"
+            [selectedStartDate]="selectedStartDate"
+            [selectedEndDate]="selectedEndDate"
+            [mode]="mode"
+            [customLabels]="customLabels"
+            [calendarType]="calendarType"
+            [minDate]="minDate"
+            [maxDate]="maxDate"
+            [cssClass]="cssClass"
+            [footerDescription]="footerDescription"
+            (dateSelected)="onDateSelected($event)"
+            (dateRangeSelected)="onDateRangeSelected($event)"
+            (closePicker)="isOpen = false"
+            tabindex="-1"
+          ></app-date-picker-popup>
+        </div>
+      </ng-template>
+      <ng-template
+        cdkConnectedOverlay
+        nzConnectedOverlay
+        [cdkConnectedOverlayOrigin]="origin"
+        [cdkConnectedOverlayOpen]="isOpen"
+        [cdkConnectedOverlayPositions]="overlayPositions"
+        [cdkConnectedOverlayTransformOriginOn]="'.qeydar-picker-wrapper'"
+        (positionChange)="onPositionChange($event)"
+        (detach)="close()"
+      >
+      <div
+        class="qeydar-picker-wrapper"
         [@slideMotion]="'enter'"
-        [selectedDate]="selectedDate"
-        [selectedStartDate]="selectedStartDate"
-        [selectedEndDate]="selectedEndDate"
-        [mode]="mode"
-        [customLabels]="customLabels"
-        [calendarType]="calendarType"
-        [minDate]="minDate"
-        [maxDate]="maxDate"
-        [cssClass]="cssClass"
-        [footerDescription]="footerDescription"
-        (dateSelected)="onDateSelected($event)"
-        (dateRangeSelected)="onDateRangeSelected($event)"
-        (closePicker)="isOpen = false"
-        tabindex="-1"
-      ></app-date-picker-popup>
+        style="position: relative;"
+      >
+        <ng-container *ngTemplateOutlet="inlineMode"></ng-container>
+      </div>
+      </ng-template>
     </div>
   `,
   styles: [`
@@ -175,6 +208,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
 export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChanges {
   @Input() rtl = false;
   @Input() mode: 'day' | 'month' | 'year' | 'range' = 'day';
+  @Input() isRange = false;
   @Input() format = 'yyyy/MM/dd';
   @Input() customLabels: Array<CustomLabels> = [];
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
@@ -185,13 +219,22 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() footerDescription: string = '';
   @Input() rangeInputLabels: RangeInputLabels;
   @Input() inputLabel: string;
+  @Input() placement: NzPlacement = 'bottomLeft';
+  @Input() disabled: boolean = false;
 
   @Output() onFocus: EventEmitter<any> = new EventEmitter();
   @Output() onBlur: EventEmitter<any> = new EventEmitter();
   @Output() onChangeValue: EventEmitter<any> = new EventEmitter();
+  @Output() onOpenChange: EventEmitter<boolean> = new EventEmitter();
 
   @ViewChild('datePickerInput') datePickerInput: ElementRef;
   @ViewChild(DatePickerPopupComponent) datePickerPopup: DatePickerPopupComponent;
+
+  origin: CdkOverlayOrigin;
+  overlayPositions: ConnectionPositionPair[] = [...DEFAULT_DATE_PICKER_POSITIONS];
+  currentPositionX: HorizontalConnectionPos = 'start';
+  currentPositionY: VerticalConnectionPos = 'bottom';
+  document: Document;
 
   isOpen = false;
   selectedDate: Date | null = null;
@@ -200,14 +243,19 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   form: FormGroup;
   dateAdapter: DateAdapter<Date>;
   activeInput: 'start' | 'end' | null = null;
-  popupPosition: { vertical: 'up' | 'down', horizontal: 'left' | 'right' } = {
-    vertical: 'down',
-    horizontal: 'left'
-  };
+
   private isInternalChange = false;
   private lastEmittedValue: any = null;
 
-  constructor(private elementRef: ElementRef, private fb: FormBuilder, private renderer: Renderer2) {
+  constructor(
+    private elementRef: ElementRef,
+    private fb: FormBuilder,
+    private renderer: Renderer2,
+    public cdref: ChangeDetectorRef,
+    @Inject(DOCUMENT) doc: Document,
+  ) {
+    this.origin = new CdkOverlayOrigin(elementRef);
+    this.document = doc;
     this.form = this.fb.group({
       dateInput: [''],
       startDateInput: [''],
@@ -215,11 +263,59 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     });
   }
 
-  @HostListener('document:click', ['$event'])
-  onClickOutside(event: Event) {
-    if (!this.elementRef.nativeElement.contains(event.target)) {
+  private setPlacement(placement: NzPlacement): void {
+    const position: ConnectionPositionPair = DATE_PICKER_POSITION_MAP[placement];
+    this.overlayPositions = [position, ...DEFAULT_DATE_PICKER_POSITIONS];
+    this.currentPositionX = position.originX;
+    this.currentPositionY = position.originY;
+  }
+
+  onPositionChange(position: ConnectedOverlayPositionChange): void {
+    this.currentPositionX = position.connectionPair.originX;
+    this.currentPositionY = position.connectionPair.originY;
+    this.cdref.detectChanges(); // Take side-effects to position styles
+  }
+
+  close(): void {
+    // if (this.isInline) {
+    //   return;
+    // }
+    // if (this.realOpenState) {
       this.isOpen = false;
+      this.onOpenChange.emit(false);
+    // }
+  }
+
+  open(): void {
+    // if (this.isInline) {
+    //   return;
+    // }
+    if (!this.isOpen && !this.disabled) {
+      this.isOpen = true;
+      this.onOpenChange.emit(true);
+      this.focus();
+      this.cdref.markForCheck();
     }
+  }
+
+  focus(): void {
+    const activeInputElement = this.datePickerInput.nativeElement;
+    if (this.document.activeElement !== activeInputElement) {
+      activeInputElement?.focus();
+    }
+  }
+
+  onFocusout(event: FocusEvent): void {
+    event.preventDefault();
+    this.onTouch();
+
+    if (
+      !this.elementRef.nativeElement.contains(<Node>event.relatedTarget) &&
+      !this.datePickerPopup?.el.nativeElement.contains(<Node>event.relatedTarget)
+    ) {
+      return this.close();
+    }
+    this.focus();
   }
 
   ngOnInit() {
@@ -238,6 +334,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     }
     if (changes['mode']) {
       this.setupFormControls();
+    }
+
+    if (changes['placement']) {
+      this.setPlacement(this.placement);
     }
   }
 
@@ -374,13 +474,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     })
     this.isOpen = true;
     this.activeInput = inputType || null;
-
-    if (this.isOpen) {
-      // Use setTimeout to ensure the popup is rendered before calculating its position
-      setTimeout(() => {
-        this.calculateOptimalPosition();
-      });
-    }
   }
 
   onDateSelected(date: Date) {
@@ -504,24 +597,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (!event.shiftKey && event.key == 'Tab' || !event.shiftKey && event.key == 'Enter') {  // Only handle forward tab, not shift+tab
       this.isOpen = false;
     }
-  }
-
-  private calculateOptimalPosition(): void {
-      const inputRect = this.datePickerInput.nativeElement.getBoundingClientRect();
-      const popupRect = this.datePickerPopup.el.nativeElement.querySelector('.date-picker-popup').getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
-  
-      const spaceBelow = viewportHeight - inputRect.bottom;
-      const spaceAbove = inputRect.top;
-      const spaceRight = viewportWidth - inputRect.left;
-      const spaceLeft = inputRect.right;
-
-      // Vertical positioning
-      this.popupPosition.vertical = spaceBelow >= popupRect.height || spaceBelow > spaceAbove ? 'down' : 'up';
-
-      // Horizontal positioning
-      this.popupPosition.horizontal = spaceRight >= popupRect.width || spaceRight > spaceLeft ? 'left' : 'right';
   }
 
   private parseDateValue(value: any): Date | null {
