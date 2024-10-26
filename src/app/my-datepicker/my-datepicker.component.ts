@@ -141,7 +141,7 @@ export type RangePartType = 'start' | 'end' | '';
       max-width: fit-content;
     }
     input {
-      font-family: 'vazirmatn';
+      font-family: inherit;
       width: 100%;
       max-width: 300px;
       padding: 6px 10px;
@@ -236,6 +236,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() disabled: boolean = false;
   @Input() isInline: boolean = false;
   @Input() showSidebar: boolean = true;
+  @Input() emitInDateFormat: boolean = false;
 
   @Output() onFocus: EventEmitter<any> = new EventEmitter();
   @Output() onBlur: EventEmitter<any> = new EventEmitter();
@@ -430,13 +431,13 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (this.isRange) {
       if (this.selectedStartDate && this.selectedEndDate) {
         newValue = {
-          start: this.dateAdapter.format(this.selectedStartDate, this.format),
-          end: this.dateAdapter.format(this.selectedEndDate, this.format)
+          start: this.emitInDateFormat? this.selectedStartDate: this.dateAdapter.format(this.selectedStartDate, this.format),
+          end: this.emitInDateFormat? this.selectedEndDate: this.dateAdapter.format(this.selectedEndDate, this.format)
         };
       }
     } else {
       if (this.selectedDate) {
-        newValue = this.dateAdapter.format(this.selectedDate, this.format);
+        newValue = this.emitInDateFormat? this.selectedDate: this.dateAdapter.format(this.selectedDate, this.format);
       }
     }
 

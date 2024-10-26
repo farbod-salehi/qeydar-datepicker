@@ -1,5 +1,4 @@
 import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
 import { DatePickerComponent } from './my-datepicker.component';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
 import { DateMaskDirective } from './input-mask.directive';
@@ -7,6 +6,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { NzConnectedOverlayDirective } from './overlay/overlay';
+import { CommonModule } from '@angular/common';
 
 @NgModule({
   declarations: [
@@ -16,7 +16,7 @@ import { NzConnectedOverlayDirective } from './overlay/overlay';
     NzConnectedOverlayDirective
   ],
   imports: [
-    BrowserModule,
+    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     OverlayModule,
