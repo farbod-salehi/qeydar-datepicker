@@ -1,60 +1,63 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { CustomLabels, DateRange, lang_En, lang_Fa, Lang_Locale, YearRange } from './models';
+import { QeydarDatePickerService } from '../date-picker.service';
 
 @Component({
   selector: 'app-date-picker-popup',
   template: `
     <div class="date-picker-popup" [class.rtl]="rtl" [class]="cssClass" tabindex="-1">
       <div class="date-picker-content">
-        <div *ngIf="isRange" class="period-selector">
-          <button
-            *ngFor="let period of periods"
-            tabindex="-1"
-            [class.active]="isActivePeriod(period)"
-            (click)="selectPeriod(period)"
-          >
-            {{ period.label }}
-            <span *ngIf="period.arrow" class="arrow">→</span>
-          </button>
-        </div>
-        <div *ngIf="!isRange" class="side-selector" #itemSelector>
-          <ng-container *ngIf="viewMode == 'days'">
-            <button 
-              *ngFor="let month of monthListNum"
-              tabindex="-1"
-              [id]="'selector_'+month"
-              [class.active]="isActiveMonth(month)"
-              [disabled]="isMonthDisabled(month)"
-              (click)="selectMonth(month, false)">
-              {{ getMonthName(month) }}
-            </button>
-          </ng-container>
-          <ng-container *ngIf="viewMode == 'months'">
+        <ng-container *ngIf="showSidebar">
+          <div *ngIf="isRange" class="period-selector">
             <button
-              *ngFor="let year of yearList" 
+              *ngFor="let period of periods"
               tabindex="-1"
-              [id]="'selector_'+year"
-              [class.active]="isActiveYear(year)"
-              [disabled]="isYearDisabled(year)"
-              (click)="selectYear(year, true)"
+              [class.active]="isActivePeriod(period)"
+              (click)="selectPeriod(period)"
             >
-              {{ year }}
+              {{ period.label }}
+              <span *ngIf="period.arrow" class="arrow">→</span>
             </button>
-          </ng-container>
-          <ng-container *ngIf="viewMode == 'years'">
-            <button
-              tabindex="-1"
-              *ngFor="let yearRange of yearRanges" 
-              [id]="'selector_'+yearRange.start"
-              [class.active]="isActiveYearRange(yearRange.start)"
-              [disabled]="isYearRangeDisabled(yearRange)"
-              (click)="selectYearRange(yearRange.start)"
-            >
-              {{ yearRange.start }} - {{ yearRange.end }}
-            </button>
-          </ng-container>
-        </div>
+          </div>
+          <div *ngIf="!isRange" class="side-selector" #itemSelector>
+            <ng-container *ngIf="viewMode == 'days'">
+              <button 
+                *ngFor="let month of monthListNum"
+                tabindex="-1"
+                [id]="'selector_'+month"
+                [class.active]="isActiveMonth(month)"
+                [disabled]="isMonthDisabled(month)"
+                (click)="selectMonth(month, false)">
+                {{ getMonthName(month) }}
+              </button>
+            </ng-container>
+            <ng-container *ngIf="viewMode == 'months'">
+              <button
+                *ngFor="let year of yearList" 
+                tabindex="-1"
+                [id]="'selector_'+year"
+                [class.active]="isActiveYear(year)"
+                [disabled]="isYearDisabled(year)"
+                (click)="selectYear(year, true)"
+              >
+                {{ year }}
+              </button>
+            </ng-container>
+            <ng-container *ngIf="viewMode == 'years'">
+              <button
+                tabindex="-1"
+                *ngFor="let yearRange of yearRanges" 
+                [id]="'selector_'+yearRange.start"
+                [class.active]="isActiveYearRange(yearRange.start)"
+                [disabled]="isYearRangeDisabled(yearRange)"
+                (click)="selectYearRange(yearRange.start)"
+              >
+                {{ yearRange.start }} - {{ yearRange.end }}
+              </button>
+            </ng-container>
+          </div>
+        </ng-container>
         <div class="calendar">
           <div class="header">
             <button class="qeydar-calendar-nav-left" (click)="goPrev()" [disabled]="isPrevMonthDisabled()" tabindex="-1"></button>
@@ -137,6 +140,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() cssClass: string = '';
   @Input() footerDescription: string = '';
   @Input() activeInput: 'start' | 'end' | '' = null;
+  @Input() showSidebar: boolean = true;
 
   @Output() dateSelected = new EventEmitter<Date>();
   @Output() dateRangeSelected = new EventEmitter<DateRange>();
@@ -161,7 +165,12 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   viewMode: 'days' | 'months' | 'years' = 'days';
   lang: Lang_Locale = this.calendarType == 'jalali'? new lang_Fa: new lang_En;
 
-  constructor(public el: ElementRef,public cdr: ChangeDetectorRef) {
+  
+  public get getDate() : Date {
+    return this.selectedDate || this.selectedStartDate || this.selectedEndDate || new Date();
+  }
+  
+  constructor(public el: ElementRef,public cdr: ChangeDetectorRef, public dpService: QeydarDatePickerService) {
     cdr.markForCheck();
   }
 
@@ -216,12 +225,18 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   setInitialDate() {
-    if (this.isRange && this.selectedStartDate) {
-      this.currentDate = this.selectedStartDate;
-    } else if (this.selectedDate) {
-      this.currentDate = this.selectedDate;
+    if (this.isRange) {
+      if (this.activeInput == 'start') {
+        this.currentDate = this.selectedStartDate || this.dateAdapter.today();
+      } else {
+        this.currentDate = this.selectedEndDate || this.dateAdapter.today();
+      }
     } else {
-      this.currentDate = this.dateAdapter.today();
+      if (this.selectedDate) {
+        this.currentDate = this.selectedDate;
+      } else {
+        this.currentDate = this.dateAdapter.today();
+      }
     }
 
     switch (this.mode) {
@@ -253,21 +268,24 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   scrollToSelectedItem(id: number|null = null) {
+    if (!this.showSidebar) {
+      return;
+    }
+
     let itemId = id;
-    let date = this.selectedDate || this.selectedStartDate || this.selectedEndDate;
-    if (id == null && date) {
+    if (id == null && this.getDate) {
       if (this.viewMode == 'days') {
-        itemId = this.dateAdapter.getMonth(date) + 1;
+        itemId = this.dateAdapter.getMonth(this.getDate) + 1;
       } else if(this.viewMode == 'months') {
-        itemId = this.dateAdapter.getYear(date);
+        itemId = this.dateAdapter.getYear(this.getDate);
       } else {
-        let currentYear = this.dateAdapter.getYear(date);
+        let currentYear = this.dateAdapter.getYear(this.getDate);
         let currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
         itemId = id || currentRange.start;
       }
     }
 
-    if (this.itemSelector && date) {
+    if (this.itemSelector && this.getDate) {
       setTimeout(() => {
         const selectedMonthElement = this.itemSelector.nativeElement.querySelector(`#selector_${itemId}`);
         if (selectedMonthElement) {
@@ -280,7 +298,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   showMonthSelector() {
     this.viewMode = 'months';
     this.generateYearList(100);
-    this.scrollToSelectedItem(this.dateAdapter.getYear(this.selectedDate));
+    this.scrollToSelectedItem(this.dateAdapter.getYear(this.getDate));
     this.cdr.detectChanges();
   }
 
@@ -297,6 +315,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     } else {
       setTimeout(() => {
         this.viewMode = 'days';
+        this.cdr.detectChanges();
       }, 0);
       this.generateCalendar();
     }
@@ -455,9 +474,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   generateYearList(length: number = 15) {
-    const currentYear = this.dateAdapter.getYear(this.selectedDate);
+    let date = this.selectedDate || this.selectedEndDate || this.selectedStartDate || new Date();
+    const currentYear = this.dateAdapter.getYear(date);
     const currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
-    const startYear = this.dateAdapter.getYear(this.selectedDate) - (Math.round(length/2));
+    const startYear = this.dateAdapter.getYear(date) - (Math.round(length/2));
     let start = this.viewMode == 'years'? currentRange.start: startYear;
     
     this.yearList = Array.from({length: length}, (_, i) => start + i);
@@ -489,6 +509,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     } else {
       setTimeout(() => {
         this.viewMode = 'months';
+        this.cdr.detectChanges();
       }, 0);
     }
     this.cdr.detectChanges();
@@ -531,12 +552,14 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   isYearDisabled(year: number): boolean {
     let isDisabled = false;
-    const minYear = this.dateAdapter.getYear(this.minDate);
-    const maxYear = this.dateAdapter.getYear(this.maxDate);
+    let minYear;
+    let maxYear;
     if (this.minDate) {
+      minYear = this.dateAdapter.getYear(this.minDate);
       isDisabled = minYear > year;
     }
     if (this.maxDate) {
+      maxYear = this.dateAdapter.getYear(this.maxDate);
       isDisabled = maxYear < year;
     }
 
@@ -548,12 +571,14 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   isYearRangeDisabled(yearRange: YearRange): boolean {
     let isDisabled = false;
-    const minYear = this.dateAdapter.getYear(this.minDate);
-    const maxYear = this.dateAdapter.getYear(this.maxDate);
+    let minYear;
+    let maxYear;
     if (this.minDate) {
+      minYear = this.dateAdapter.getYear(this.minDate);
       isDisabled = minYear > yearRange.end;
     }
     if (this.maxDate) {
+      maxYear = this.dateAdapter.getYear(this.maxDate);
       isDisabled = maxYear < yearRange.start;
     }
 

@@ -15,9 +15,10 @@
 
     <qeydar-date-picker
         [rtl]="rtl"
+        [showSidebar]="true"
         [calendarType]="rtl? 'jalali':'georgian'"
         [(ngModel)]="myDateRange"
-        [isRange]="true"
+        [isRange]="false"
         [format]="'yyyy/MM/dd'"
         [mode]="'day'"
         (ngModelChange)="onChange($event)"

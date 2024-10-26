@@ -458,7 +458,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       inputValue = this.form.get('dateInput')?.value;
     }
 
-    if (typeof inputValue === 'string') {
+    if (typeof inputValue === 'string' && !this.isOpen) {
       const correctedValue = this.validateAndCorrectInput(inputValue);
       value = correctedValue;
       if (correctedValue !== inputValue) {
@@ -500,7 +500,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       input: inputType,
       event,
       value
-    })
+    });
   }
 
   validateAndCorrectInput(value: string): string {
