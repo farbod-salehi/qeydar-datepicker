@@ -102,6 +102,7 @@ export type RangePartType = 'start' | 'end' | '';
             [cssClass]="cssClass"
             [footerDescription]="footerDescription"
             [activeInput]="activeInput"
+            [showSidebar]="showSidebar"
             (dateSelected)="onDateSelected($event)"
             (dateRangeSelected)="onDateRangeSelected($event)"
             (closePicker)="close()"
@@ -234,6 +235,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() placement: Placement = 'bottomLeft';
   @Input() disabled: boolean = false;
   @Input() isInline: boolean = false;
+  @Input() showSidebar: boolean = true;
 
   @Output() onFocus: EventEmitter<any> = new EventEmitter();
   @Output() onBlur: EventEmitter<any> = new EventEmitter();
@@ -526,7 +528,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     this.dpService.activeInput$.next(this.activeInput);
     this.open();
     this.cdref.detectChanges();
-    
   }
 
   onDateSelected(date: Date) {
@@ -649,7 +650,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       return;
     }
     if (!event.shiftKey && event.key == 'Tab' || !event.shiftKey && event.key == 'Enter') {  // Only handle forward tab, not shift+tab
-      // this.close();
+      this.close();
     }
   }
 
