@@ -17,6 +17,11 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "skipLibCheck": true,
+    "paths": {
+      "qeydar-datepicker": [
+        "dist/qeydar-datepicker"
+      ]
+    },
     "noImplicitUseStrict": false,
     "strictPropertyInitialization":false,
     "strictNullChecks": false,
