@@ -3,15 +3,17 @@ import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter,
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup } from '@angular/forms';
 import { CdkOverlayOrigin, ConnectionPositionPair } from '@angular/cdk/overlay';
 import { slideMotion } from '../animation/slide';
+import { lang_En, lang_Fa, Lang_Locale } from '../date-picker-popup/models';
 
 @Component({
   selector: 'qeydar-time-picker',
   template: `
-    <div class="time-picker-wrapper" [formGroup]="form" (click)="$event.stopPropagation()">
+    <div class="time-picker-wrapper" [formGroup]="form">
       <div class="input-wrapper">
         <input
           #timePickerInput
           type="text"
+          class="time-picker-input"
           [class.focus]="isOpen"
           formControlName="timeInput"
           (focus)="onFocusInput()"
@@ -41,10 +43,6 @@ import { slideMotion } from '../animation/slide';
           style="position: relative"
           (click)="$event.stopPropagation()"
         >
-          <div class="time-picker-header">
-            <span>Select time</span>
-          </div>
-          
           <div class="time-picker-content">
             <div class="time-columns">
               <!-- Hours -->
@@ -52,6 +50,7 @@ import { slideMotion } from '../animation/slide';
                 <div class="time-scroller">
                   <button
                     *ngFor="let hour of hours"
+                    [id]="'selector_h'+hour"
                     [class.selected]="selectedHour === hour"
                     [class.disabled]="isHourDisabled(hour)"
                     (click)="selectHour(hour)"
@@ -69,6 +68,7 @@ import { slideMotion } from '../animation/slide';
                 <div class="time-scroller">
                   <button
                     *ngFor="let minute of minutes"
+                    [id]="'selector_m'+minute"
                     [class.selected]="selectedMinute === minute"
                     [class.disabled]="isMinuteDisabled(minute)"
                     (click)="selectMinute(minute)"
@@ -78,30 +78,57 @@ import { slideMotion } from '../animation/slide';
                   </button>
                 </div>
               </div>
+
+              <!-- Seconds (if format includes seconds) -->
+              <ng-container *ngIf="showSeconds">
+                <div class="time-separator">:</div>
+                <div class="time-column">
+                  <div class="time-scroller">
+                    <button
+                      *ngFor="let second of seconds"
+                      [id]="'selector_s'+second"
+                      [class.selected]="selectedSecond === second"
+                      (click)="selectSecond(second)"
+                      type="button"
+                    >
+                      {{ second.toString().padStart(2, '0') }}
+                    </button>
+                  </div>
+                </div>
+              </ng-container>
               
-              <!-- AM/PM -->
-              <div class="time-column period">
-                <button
-                  *ngFor="let period of periods"
-                  [class.selected]="selectedPeriod === period"
-                  (click)="selectPeriod(period)"
-                  type="button"
-                >
-                  {{ period }}
-                </button>
-              </div>
+              <!-- AM/PM (only in 12-hour format) -->
+              <ng-container *ngIf="timeFormat === '12'">
+                <div class="time-column period">
+                  <button
+                    *ngFor="let period of periods"
+                    [class.selected]="selectedPeriod === period"
+                    (click)="selectPeriod(period)"
+                    type="button"
+                  >
+                    {{ period }}
+                  </button>
+                </div>
+              </ng-container>
             </div>
           </div>
           
           <div class="time-picker-footer">
-            <button class="cancel-btn" (click)="cancel()" type="button">Cancel</button>
-            <button class="save-btn" (click)="save()" type="button">Save</button>
+            <button class="cancel-btn" (click)="cancel()" type="button">{{ lang.cancel }}</button>
+            <button class="save-btn" (click)="save()" type="button">{{ lang.ok }}</button>
           </div>
         </div>
       </ng-template>
     </div>
   `,
   styles: [`
+    :host * {
+      font-family: inherit;
+      font-weight: 400;
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
     .time-picker-wrapper {
       display: inline-block;
     }
@@ -112,13 +139,14 @@ import { slideMotion } from '../animation/slide';
       align-items: center;
     }
 
-    input {
+    input.time-picker-input {
       font-family: inherit;
       width: 100%;
       padding: 6px 30px 6px 10px;
       border: 1px solid #d9d9d9;
       border-radius: 4px;
       font-size: 14px;
+      word-spacing: 7px;
       transition: all 0.3s;
     }
 
@@ -145,7 +173,8 @@ import { slideMotion } from '../animation/slide';
       background: white;
       border-radius: 8px;
       box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08);
-      width: 280px;
+      width: fit-content;
+      min-width: 200px;
       overflow: hidden;
     }
 
@@ -263,16 +292,47 @@ import { slideMotion } from '../animation/slide';
 })
 export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDestroy {
   @Input() placeholder?: string;
-  @Input() format: '12' | '24' = '12';
+  @Input() set timeFormat(value: '12' | '24') {
+    this._timeFormat = value;
+    this.updateHourRange();
+  }
+  get timeFormat(): '12' | '24' {
+    return this._timeFormat;
+  }
+
+  @Input() set displayFormat(value: string) {
+    this._displayFormat = value;
+    this.showSeconds = value.toLowerCase().includes('s');
+    this.updateTimeDisplay();
+  }
+  get displayFormat(): string {
+    return this._displayFormat;
+  }
+
   @Input() placement: 'left' | 'right' = 'right';
   @Input() minTime?: string;
   @Input() maxTime?: string;
+  @Input() lang: Lang_Locale = new lang_Fa();
 
   @Output() timeChange = new EventEmitter<string>();
   @Output() openChange = new EventEmitter<boolean>();
 
   @ViewChild('timePickerInput') timePickerInput: ElementRef;
   @ViewChild('popupWrapper') popupWrapper: ElementRef;
+
+  private _timeFormat: '12' | '24' = '12';
+  private _displayFormat = 'hh:mm a';
+  
+  showSeconds = false;
+  hours: number[] = [];
+  minutes: number[] = Array.from({length: 60}, (_, i) => i);
+  seconds: number[] = Array.from({length: 60}, (_, i) => i);
+  periods: string[] = [this.lang.am, this.lang.pm];
+
+  selectedHour: number = 12;
+  selectedMinute: number = 0;
+  selectedSecond: number = 0;
+  selectedPeriod: string = this.lang.am;
 
   isOpen = false;
   form: FormGroup;
@@ -286,14 +346,6 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
       offsetY: 4
     }
   ];
-
-  hours: number[] = this.format === '12' ? Array.from({length: 12}, (_, i) => i + 1) : Array.from({length: 24}, (_, i) => i);
-  minutes: number[] = Array.from({length: 60}, (_, i) => i);
-  periods: string[] = ['AM', 'PM'];
-
-  selectedHour: number = 12;
-  selectedMinute: number = 0;
-  selectedPeriod: string = 'AM';
 
   private onChange: (value: any) => void = () => {};
   private onTouched: () => void = () => {};
@@ -323,6 +375,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   ngOnInit() {
+    this.updateHourRange();
     this.origin = new CdkOverlayOrigin(this.elementRef);
     this.form.get('timeInput').valueChanges.subscribe(value => {
       if (value) {
@@ -358,21 +411,53 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   parseTimeString(timeString: string) {
-    const [time, period] = timeString.split(' ');
-    const [hours, minutes] = time.split(':').map(Number);
+    if (!timeString) return;
+
+    const hasSeconds = timeString.split(':').length > 2;
+    let [time, period] = timeString.split(' ');
+    let [hours, minutes, seconds] = time.split(':').map(Number);
+
+    if (this.timeFormat === '12') {
+      // Convert 24h to 12h if needed
+      if (!period) {
+        period = hours >= 12 ? this.lang.pm : this.lang.am;
+        hours = hours % 12 || 12;
+      }
+    } else {
+      // Convert 12h to 24h if needed
+      if (period) {
+        if (period.toUpperCase() === this.lang.pm && hours < 12) hours += 12;
+        if (period.toUpperCase() === this.lang.am && hours === 12) hours = 0;
+      }
+    }
     
     this.selectedHour = hours;
     this.selectedMinute = minutes || 0;
-    this.selectedPeriod = period || 'AM';
+    this.selectedSecond = seconds || 0;
+    this.selectedPeriod = (this.timeFormat === '12') ? (period || this.lang.am) : null;
   }
 
   formatTime(): string {
     let hours = this.selectedHour;
-    if (this.format === '12') {
-      if (this.selectedPeriod === 'PM' && hours < 12) hours += 12;
-      if (this.selectedPeriod === 'AM' && hours === 12) hours = 0;
+    
+    if (this.timeFormat === '12') {
+      // Convert to 12-hour format
+      if (this.selectedPeriod === this.lang.pm && hours < 12) hours += 12;
+      if (this.selectedPeriod === this.lang.am && hours === 12) hours = 0;
+      hours = hours % 12 || 12;
     }
-    return `${hours.toString().padStart(2, '0')}:${this.selectedMinute.toString().padStart(2, '0')}${this.format === '12' ? ' ' + this.selectedPeriod : ''}`;
+
+    let timeString = `${hours.toString().padStart(2, '0')}:${this.selectedMinute.toString().padStart(2, '0')}`;
+    
+    if (this.showSeconds) {
+      timeString += `:${this.selectedSecond.toString().padStart(2, '0')}`;
+    }
+
+    if (this.timeFormat === '12') {
+      timeString += ` ${this.selectedPeriod}`;
+    }
+
+    return timeString;
   }
 
   onFocusInput() {
@@ -406,6 +491,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   open(): void {
     this.isOpen = true;
     this.openChange.emit(true);
+    this.scrollToTime();
   }
 
   close(): void {
@@ -420,17 +506,28 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   selectHour(hour: number) {
     if (!this.isHourDisabled(hour)) {
       this.selectedHour = hour;
+      this.updateTimeDisplay();
+      this.scrollToSelectedItem('h'+hour);
     }
   }
 
   selectMinute(minute: number) {
     if (!this.isMinuteDisabled(minute)) {
       this.selectedMinute = minute;
+      this.updateTimeDisplay();
+      this.scrollToSelectedItem('m'+minute);
     }
+  }
+
+  selectSecond(second: number) {
+    this.selectedSecond = second;
+    this.updateTimeDisplay();
+    this.scrollToSelectedItem('s'+second);
   }
 
   selectPeriod(period: string) {
     this.selectedPeriod = period;
+    this.updateTimeDisplay();
   }
 
   isHourDisabled(hour: number): boolean {
@@ -469,5 +566,44 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     if (!this.elementRef.nativeElement.contains(event.target) && this.isOpen) {
       this.close();
     }
+  }
+
+  private updateHourRange() {
+    this.hours = this.timeFormat === '12' 
+      ? Array.from({length: 12}, (_, i) => i + 1)
+      : Array.from({length: 24}, (_, i) => i);
+  }
+
+  private updateTimeDisplay() {
+    if (this.form) {
+      const formattedTime = this.formatTime();
+      this.form.get('timeInput').setValue(formattedTime, { emitEvent: false });
+    }
+  }
+
+  scrollToSelectedItem(id: string,behavior: 'smooth'|'auto' = 'smooth',timeout = 0) {
+    clearTimeout(this.timeoutId);
+    return new Promise((resolve,reject) => {
+      if (id) {
+        this.timeoutId = setTimeout(() => {
+          const selectedElement = this.popupWrapper.nativeElement.querySelector(`#selector_${id}`);
+          if (selectedElement) {
+            selectedElement.scrollIntoView({ behavior: behavior, block: 'center' });
+          }
+          resolve(true);
+        }, timeout);
+      }
+    });
+  }
+    
+  async scrollToTime() {
+    if (this.selectedHour)
+      await this.scrollToSelectedItem('h'+this.selectedHour,'auto');
+
+    if (this.selectedMinute)
+      await this.scrollToSelectedItem('m'+this.selectedMinute,'auto');
+
+    if (this.selectedSecond)
+      await this.scrollToSelectedItem('s'+this.selectedSecond);
   }
 }

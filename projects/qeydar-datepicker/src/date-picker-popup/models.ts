@@ -35,6 +35,11 @@ export interface Lang_Locale {
     selectDateRange: string;
     startDate: string;
     endDate: string;
+    pm: string;
+    am: string;
+    ok: string;
+    cancel: string;
+    now: string;
 }
 
 export class lang_Fa implements Lang_Locale{
@@ -53,13 +58,18 @@ export class lang_Fa implements Lang_Locale{
     selectDateRange:string = "انتخاب محدوده تاریخ";
     startDate:string = "از تاریخ";
     endDate:string = "تا تاریخ";
+    pm: string = "ب.ظ";
+    am: string = "ق.ظ";
+    ok: string = "تایید";
+    cancel: string = "لغو";
+    now: string = "اکنون";
 }
 
 export class lang_En implements Lang_Locale{
-    lastHour:string = "last Hour";
-    lastDay:string = "last Day";
-    lastWeek:string = "last Week";
-    lastMonth:string = "last Month";
+    lastHour:string = "Last Hour";
+    lastDay:string = "Last Day";
+    lastWeek:string = "Last Week";
+    lastMonth:string = "Last Month";
     custom:string = "Custom";
     previousMonth:string = "Previous Month";
     nextMonth:string = "Next Month";
@@ -71,4 +81,9 @@ export class lang_En implements Lang_Locale{
     selectDateRange:string = "Select date range";
     startDate:string = "Start date";
     endDate:string = "End date";
+    pm: string = "PM";
+    am: string = "AM";
+    ok: string = "Ok";
+    cancel: string = "Cancel";
+    now: string = "Now";
 }
