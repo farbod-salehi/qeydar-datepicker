@@ -13,7 +13,7 @@
      [showSidebar]="false"
     (ngModelChange)="onChange($event)"></qeydar-date-picker>
     <input type="text">
-
+    <qeydar-time-picker format="12" [(ngModel)]="myDate" (ngModelChange)="onChange($event)"></qeydar-time-picker>
     <qeydar-date-picker
         [rtl]="rtl"
         [showSidebar]="true"
