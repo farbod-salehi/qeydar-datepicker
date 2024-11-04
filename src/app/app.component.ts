@@ -7,12 +7,13 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AppComponent implements OnInit{
   title = 'my-datepicker';
-  myDate: any //= new Date();
+  myDate: any = new Date();
   myDateRange: any //= {start:new Date(), end: new Date()};
   rtl = false;
   rangPicker = false;
   maxDate = new Date(2024,11,16);
   minDate = new Date(2024,5,1);
+  myTime = '22:20';
 
   ngOnInit(): void {
     // console.log("ngOnInit:",this.minDate,this.maxDate);

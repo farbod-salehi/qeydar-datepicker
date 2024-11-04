@@ -5,6 +5,8 @@ import { CdkOverlayOrigin, ConnectionPositionPair } from '@angular/cdk/overlay';
 import { slideMotion } from '../animation/slide';
 import { lang_En, lang_Fa, Lang_Locale } from '../date-picker-popup/models';
 
+type TimeValueType = 'date' | 'string';
+
 @Component({
   selector: 'qeydar-time-picker',
   template: `
@@ -114,8 +116,13 @@ import { lang_En, lang_Fa, Lang_Locale } from '../date-picker-popup/models';
           </div>
           
           <div class="time-picker-footer">
-            <button class="cancel-btn" (click)="cancel()" type="button">{{ lang.cancel }}</button>
-            <button class="save-btn" (click)="save()" type="button">{{ lang.ok }}</button>
+            <div class="footer-buttons">
+              <button class="now-btn" (click)="selectNow()" type="button">{{ lang.now }}</button>
+            </div>
+            <div class="footer-actions">
+              <button class="cancel-btn" (click)="cancel()" type="button">{{ lang.cancel }}</button>
+              <button class="save-btn" (click)="save()" type="button">{{ lang.ok }}</button>
+            </div>
           </div>
         </div>
       </ng-template>
@@ -247,10 +254,9 @@ import { lang_En, lang_Fa, Lang_Locale } from '../date-picker-popup/models';
 
     .time-picker-footer {
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
       padding: 8px;
       border-top: 1px solid #f0f0f0;
-      gap: 8px;
     }
 
     button {
@@ -275,6 +281,28 @@ import { lang_En, lang_Fa, Lang_Locale } from '../date-picker-popup/models';
 
     .cancel-btn:hover {
       border-color: #40a9ff;
+      color: #40a9ff;
+    }
+
+    .footer-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .now-btn {
+      color: #1890ff;
+      border-color: transparent;
+      background: transparent;
+      box-shadow: none;
+      padding-left: 0;
+    }
+
+    .now-btn:hover {
       color: #40a9ff;
     }
   `],
@@ -313,8 +341,9 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   @Input() minTime?: string;
   @Input() maxTime?: string;
   @Input() lang: Lang_Locale = new lang_Fa();
+  @Input() valueType: TimeValueType = 'string';
 
-  @Output() timeChange = new EventEmitter<string>();
+  @Output() timeChange = new EventEmitter<any>();
   @Output() openChange = new EventEmitter<boolean>();
 
   @ViewChild('timePickerInput') timePickerInput: ElementRef;
@@ -322,6 +351,15 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
   private _timeFormat: '12' | '24' = '12';
   private _displayFormat = 'hh:mm a';
+  private _value: string | Date | null = null;
+  get value(): Date | string | null {
+    return this._value;
+  }
+  set value(val: Date | string | null) {
+    this._value = val;
+    this.updateFromValue(val);
+  }
+
   
   showSeconds = false;
   hours: number[] = [];
@@ -382,6 +420,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
         this.parseTimeString(value);
       }
     });
+    this.value = new Date();
 
     // Handle clicks outside the component
     document.addEventListener('click', this.documentClickListener);
@@ -395,11 +434,30 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     document.removeEventListener('click', this.handleDocumentClick);
   }
 
-  writeValue(value: string): void {
-    if (value) {
-      this.form.get('timeInput').setValue(value, { emitEvent: false });
-      this.parseTimeString(value);
+  writeValue(value: Date | string | null): void {
+    if (value === null || value === undefined) {
+      this.value = null;
+      return;
     }
+
+    if (value instanceof Date) {
+      this.value = value;
+    } else if (typeof value === 'string') {
+      if (value.trim() === '') {
+        this.value = null;
+      } else {
+        // Try to parse as date first
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          this.value = this.valueType === 'date' ? date : this.formatTime(date);
+        } else {
+          // Try to parse as time string
+          this.value = value;
+          this.parseTimeString(value);
+        }
+      }
+    }
+    this.updateTimeDisplay();
   }
 
   registerOnChange(fn: any): void {
@@ -410,21 +468,24 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     this.onTouched = fn;
   }
 
-  parseTimeString(timeString: string) {
-    if (!timeString) return;
+  parseTimeString(value: string | Date) {
+    if (value instanceof Date) {
+      this.updateFromDate(value);
+      return;
+    }
 
-    const hasSeconds = timeString.split(':').length > 2;
-    let [time, period] = timeString.split(' ');
+    if (!value) return;
+
+    const hasSeconds = value.split(':').length > 2;
+    let [time, period] = value.split(' ');
     let [hours, minutes, seconds] = time.split(':').map(Number);
 
     if (this.timeFormat === '12') {
-      // Convert 24h to 12h if needed
       if (!period) {
         period = hours >= 12 ? this.lang.pm : this.lang.am;
         hours = hours % 12 || 12;
       }
     } else {
-      // Convert 12h to 24h if needed
       if (period) {
         if (period.toUpperCase() === this.lang.pm && hours < 12) hours += 12;
         if (period.toUpperCase() === this.lang.am && hours === 12) hours = 0;
@@ -437,11 +498,27 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     this.selectedPeriod = (this.timeFormat === '12') ? (period || this.lang.am) : null;
   }
 
-  formatTime(): string {
+  formatTime(date?: Date): string {
+    if (date) {
+      let hours = date.getHours();
+      const minutes = date.getMinutes();
+      const seconds = date.getSeconds();
+      
+      if (this.timeFormat === '12') {
+        const period = hours >= 12 ? this.lang.pm : this.lang.am;
+        hours = hours % 12 || 12;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}${
+          this.showSeconds ? `:${seconds.toString().padStart(2, '0')}` : ''
+        }${this.timeFormat === '12' ? ' ' + period : ''}`;
+      }
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}${
+        this.showSeconds ? `:${seconds.toString().padStart(2, '0')}` : ''
+      }`;
+    }
+
     let hours = this.selectedHour;
-    
     if (this.timeFormat === '12') {
-      // Convert to 12-hour format
       if (this.selectedPeriod === this.lang.pm && hours < 12) hours += 12;
       if (this.selectedPeriod === this.lang.am && hours === 12) hours = 0;
       hours = hours % 12 || 12;
@@ -551,15 +628,97 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   save() {
+    let outputValue: Date | string;
+    
+    if (this.valueType === 'date') {
+      outputValue = this.updateDateFromSelection();
+    } else {
+      outputValue = this.formatTime();
+    }
+
+    this._value = outputValue;
     const formattedTime = this.formatTime();
-    this.form.get('timeInput').setValue(formattedTime);
-    this.onChange(formattedTime);
-    this.timeChange.emit(formattedTime);
+    this.form.get('timeInput').setValue(formattedTime, { emitEvent: false });
+    
+    this.onChange(outputValue);
+    this.timeChange.emit(outputValue);
     this.close();
   }
 
   cancel() {
     this.close();
+  }
+
+  selectNow(): void {
+    const now = new Date();
+    this.selectedHour = this.timeFormat === '12' ? now.getHours() % 12 || 12 : now.getHours();
+    this.selectedMinute = now.getMinutes();
+    this.selectedSecond = now.getSeconds();
+    this.selectedPeriod = now.getHours() >= 12 ? this.lang.pm : this.lang.am;
+    
+    this.updateTimeDisplay();
+    this.scrollToTime();
+  }
+
+  // Helper method to update the date object
+  private updateDateFromSelection(): Date {
+    let baseDate: Date;
+    
+    if (this._value instanceof Date) {
+      baseDate = new Date(this._value);
+    } else {
+      baseDate = new Date();
+      baseDate.setHours(0, 0, 0, 0); // Reset time if no previous date value
+    }
+    
+    let hours = this.selectedHour;
+    if (this.timeFormat === '12') {
+      if (this.selectedPeriod === this.lang.pm && hours < 12) hours += 12;
+      if (this.selectedPeriod === this.lang.am && hours === 12) hours = 0;
+    }
+    
+    baseDate.setHours(hours);
+    baseDate.setMinutes(this.selectedMinute);
+    baseDate.setSeconds(this.showSeconds ? this.selectedSecond : 0);
+    baseDate.setMilliseconds(0);
+    
+    return baseDate;
+  }
+
+  // Helper method to update selections from date
+  private updateFromDate(date: Date | null): void {
+    if (!isNaN(date.getTime())) {
+      let hours = date.getHours();
+      if (this.timeFormat === '12') {
+        this.selectedPeriod = hours >= 12 ? this.lang.pm : this.lang.am;
+        hours = hours % 12 || 12;
+      }
+      this.selectedHour = hours;
+      this.selectedMinute = date.getMinutes();
+      this.selectedSecond = date.getSeconds();
+    } else {
+      this.resetSelection();
+    }
+  }
+
+  private resetSelection(): void {
+    this.selectedHour = this.timeFormat === '12' ? 12 : 0;
+    this.selectedMinute = 0;
+    this.selectedSecond = 0;
+    this.selectedPeriod = this.lang.am;
+  }
+
+  private updateFromValue(value: Date | string | null): void {
+    if (!value) {
+      this.resetSelection();
+      return;
+    }
+
+    if (value instanceof Date) {
+      this.updateFromDate(value);
+    } else {
+      this.parseTimeString(value);
+    }
   }
 
   private handleDocumentClick(event: MouseEvent): void {
