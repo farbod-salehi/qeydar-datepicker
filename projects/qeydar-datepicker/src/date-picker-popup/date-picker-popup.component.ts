@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener, OnDestroy } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { CustomLabels, DateRange, lang_En, lang_Fa, Lang_Locale, YearRange } from './models';
 import { QeydarDatePickerService } from '../date-picker.service';
@@ -126,7 +126,8 @@ import { QeydarDatePickerService } from '../date-picker.service';
   `,
   styleUrls: ['./date-picker-popup.component.scss']
 })
-export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewInit {
+export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
+  // ========== Input Properties ==========
   @Input() rtl = false;
   @Input() selectedDate: Date | null = null;
   @Input() selectedStartDate: Date | null = null;
@@ -137,19 +138,22 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
   @Input() minDate: Date | null = null;
   @Input() maxDate: Date | null = null;
-  @Input() cssClass: string = '';
-  @Input() footerDescription: string = '';
+  @Input() cssClass = '';
+  @Input() footerDescription = '';
   @Input() activeInput: 'start' | 'end' | '' = null;
-  @Input() showSidebar: boolean = true;
+  @Input() showSidebar = true;
   @Input() showToday: boolean;
 
+  // ========== Output Properties ==========
   @Output() dateSelected = new EventEmitter<Date>();
   @Output() dateRangeSelected = new EventEmitter<DateRange>();
   @Output() closePicker = new EventEmitter<void>();
   @Output() clickInside = new EventEmitter<boolean>();
 
+  // ========== ViewChild Properties ==========
   @ViewChild('itemSelector') itemSelector: ElementRef;
 
+  // ========== Class Properties ==========
   dateAdapter: DateAdapter<Date>;
   weekDays: string[] = [];
   periods: Array<CustomLabels> = [];
@@ -158,268 +162,296 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   selectedPeriod: any = '';
   tempEndDate: Date | null = null;
   monthListNum = Array.from({ length: 12 }, (_, i) => i + 1);
-  /**
-   * Conventional: takes 15 numbers of the year type
-   */
   yearList: number[] = [];
   yearRanges: Array<YearRange> = [];
   viewMode: 'days' | 'months' | 'years' = 'days';
-  lang: Lang_Locale = this.calendarType == 'jalali'? new lang_Fa: new lang_En;
+  lang: Lang_Locale;
+  timeoutId: any = null;
 
-  
-  public get getDate() : Date {
+  // ========== Getters ==========
+  public get getDate(): Date {
     return this.selectedDate || this.selectedStartDate || this.selectedEndDate || new Date();
   }
-  
-  constructor(public el: ElementRef,public cdr: ChangeDetectorRef, public dpService: QeydarDatePickerService) {
+
+  constructor(
+    public el: ElementRef,
+    public cdr: ChangeDetectorRef, 
+    public dpService: QeydarDatePickerService
+  ) {
     cdr.markForCheck();
   }
 
+  // ========== Lifecycle Hooks ==========
   ngOnInit() {
-    this.setDateAdapter();
-    this.setInitialDate();
-    this.generateCalendar();
-    this.weekDays = this.dateAdapter.getDayOfWeekNames('short');
-    if (this.mode == 'year') {
-      this.showYearSelector();
-    }
-    this.initLables();
+    this.initializeComponent();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['calendarType']) {
-      this.setDateAdapter();
-    }
-    if (changes['selectedDate'] || changes['selectedStartDate'] || changes['selectedEndDate'] || changes['mode'] || changes['calendarType']) {
-      this.setInitialDate();
-      this.generateCalendar();
-    }
-    if (changes['minDate'] || changes['maxDate']) {
-      this.adjustCurrentDateToValidRange();
-    }
-    if (changes['selectedStartDate'] || changes['selectedEndDate']) {
-      this.setInitialDate();
-      this.generateCalendar();
-    }
+    this.handleChanges(changes);
   }
 
   ngAfterViewInit() {
     this.scrollToSelectedItem();
   }
 
-  initLables() {
-    const today = this.dateAdapter.today();
+  ngOnDestroy(): void {
+    if (this.timeoutId != null) {
+      clearTimeout(this.timeoutId);
+    }
+  }
+  // ========== Initialization Methods ==========
+  initializeComponent(): void {
+    this.setDateAdapter();
+    this.setInitialDate();
+    this.generateCalendar();
+    this.weekDays = this.dateAdapter.getDayOfWeekNames('short');
+    if (this.mode === 'year') {
+      this.showYearSelector();
+    }
+    this.initLabels();
+  }
 
+  initLabels(): void {
+    const today = this.dateAdapter.today();
     if (this.customLabels.length) {
       this.periods = this.customLabels;
-    } else {
-      if (this.isRange) {
-        this.periods = [
-          { label: this.lang.lastHour, value: [this.dateAdapter.addHours(today, 0),this.dateAdapter.addHours(today, -1)] },
-          { label: this.lang.lastDay, value: [this.dateAdapter.addDays(today, -1), today] },
-          { label: this.lang.lastWeek, value: [this.dateAdapter.addDays(today, -7), today], arrow: true },
-          { label: this.lang.lastMonth, value: [this.dateAdapter.addMonths(today, -1), today] },
-          { label: this.lang.custom, value: 'custom' }
-        ]
-      }
+    } else if (this.isRange) {
+      this.generateDefaultPeriods(today);
     }
   }
 
-  setInitialDate() {
-    if (this.isRange) {
-      if (this.activeInput == 'start') {
-        this.currentDate = this.selectedStartDate || this.dateAdapter.today();
-      } else {
-        this.currentDate = this.selectedEndDate;
+  generateDefaultPeriods(today: Date): void {
+    this.periods = [
+      { 
+        label: this.lang.lastHour, 
+        value: [this.dateAdapter.addHours(today, 0), this.dateAdapter.addHours(today, -1)] 
+      },
+      { 
+        label: this.lang.lastDay, 
+        value: [this.dateAdapter.addDays(today, -1), today] 
+      },
+      { 
+        label: this.lang.lastWeek, 
+        value: [this.dateAdapter.addDays(today, -7), today], 
+        arrow: true 
+      },
+      { 
+        label: this.lang.lastMonth, 
+        value: [this.dateAdapter.addMonths(today, -1), today] 
+      },
+      { 
+        label: this.lang.custom, 
+        value: 'custom' 
       }
-    } else {
-      if (this.selectedDate) {
-        this.currentDate = this.selectedDate;
-      } else {
-        this.currentDate = this.dateAdapter.today();
-      }
-    }
-
-    switch (this.mode) {
-      case 'day':
-        this.viewMode = 'days'
-        break;
-      case 'month':
-        this.viewMode = 'months'
-        break;
-      case 'year':
-        this.viewMode = 'years'
-        break;
-      default:
-        break;
-    }
-
-    this.adjustCurrentDateToValidRange();
+    ];
   }
 
-  setDateAdapter() {
+  // ========== Date Adapter Methods ==========
+  setDateAdapter(): void {
     this.dateAdapter = this.calendarType === 'jalali' ? new JalaliDateAdapter() : new GregorianDateAdapter();
-    this.lang = this.calendarType == 'jalali'? new lang_Fa: new lang_En;
+    this.lang = this.calendarType === 'jalali' ? new lang_Fa() : new lang_En();
   }
 
-  generateCalendar() {
+  // ========== Calendar Generation Methods ==========
+  generateCalendar(): void {
     const firstDayOfMonth = this.dateAdapter.startOfMonth(this.currentDate);
     const startDate = this.dateAdapter.startOfWeek(firstDayOfMonth);
-    this.days = Array.from({length: 42}, (_, i) => this.dateAdapter.addDays(startDate, i));
+    this.days = Array.from({ length: 42 }, (_, i) => this.dateAdapter.addDays(startDate, i));
   }
 
-  scrollToSelectedItem(id: number|null = null) {
-    if (!this.showSidebar) {
-      return;
-    }
-
-    let itemId = id;
-    if (id == null && this.getDate) {
-      if (this.viewMode == 'days') {
-        itemId = this.dateAdapter.getMonth(this.getDate) + 1;
-      } else if(this.viewMode == 'months') {
-        itemId = this.dateAdapter.getYear(this.getDate);
-      } else {
-        let currentYear = this.dateAdapter.getYear(this.getDate);
-        let currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
-        itemId = id || currentRange.start;
-      }
-    }
-
-    if (this.itemSelector && this.getDate) {
-      setTimeout(() => {
-        const selectedMonthElement = this.itemSelector.nativeElement.querySelector(`#selector_${itemId}`);
-        if (selectedMonthElement) {
-          selectedMonthElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 0);
+  // ========== View Mode Management ==========
+  setViewMode(): void {
+    switch (this.mode) {
+      case 'day':
+        this.viewMode = 'days';
+        break;
+      case 'month':
+        this.viewMode = 'months';
+        break;
+      case 'year':
+        this.viewMode = 'years';
+        break;
     }
   }
 
-  showMonthSelector() {
+  showMonthSelector(): void {
     this.viewMode = 'months';
     this.generateYearList(100);
     this.scrollToSelectedItem(this.dateAdapter.getYear(this.getDate));
     this.cdr.detectChanges();
   }
 
-  selectMonth(month: number, closeAfterSelection: boolean = false) {
-    if (this.isMonthDisabled(month)) {
-      return;
-    }
-    this.currentDate = this.dateAdapter.createDate(this.dateAdapter.getYear(this.currentDate), month - 1, 1);
-    if (this.mode === 'month' || closeAfterSelection) {
-      this.selectedDate = this.currentDate;
-      this.dateSelected.emit(this.currentDate);
-      // Close the date picker
-      this.closeDatePicker();
-    } else {
-      setTimeout(() => {
-        this.viewMode = 'days';
-        this.cdr.detectChanges();
-      }, 0);
-      this.generateCalendar();
-    }
-
+  showYearSelector(): void {
+    this.viewMode = 'years';
+    this.generateYearRanges();
+    this.generateYearList();
+    this.scrollToSelectedItem();
     this.cdr.detectChanges();
-    this.scrollToSelectedItem(month);
   }
 
-  selectDate(date: Date) {
-    if (this.isDateDisabled(date)) {
-      return;
-    }
+  // ========== Date Selection Methods ==========
+  selectDate(date: Date): void {
+    if (this.isDateDisabled(date)) return;
+
     if (this.isRange) {
-      if (
-          !this.selectedStartDate ||
-          (this.selectedStartDate && this.selectedEndDate) ||
-          this.dateAdapter.isBefore(date, this.selectedStartDate)
-      ) {
-        this.selectedStartDate = date;
-        this.selectedEndDate = null;
-        this.activeInput = 'end';
-        this.dpService.activeInput$.next('end');
-        this.dateRangeSelected.emit({ start: this.selectedStartDate, end: null });
-      } else {
-        this.selectedEndDate = date;
-        this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
-      }
+      this.handleRangeSelection(date);
     } else {
-      this.selectedDate = date;
-      this.dateSelected.emit(date);
+      this.handleSingleSelection(date);
     }
     this.currentDate = date;
     this.cdr.detectChanges();
   }
 
-  isActivePeriod(period: CustomLabels) {
-    let sameStart,sameEnd;
-    if (period.value != 'custom') {
-      sameStart = this.dateAdapter.isEqual(
-        this.dateAdapter.startOfDay(period.value[0] as Date),
-        this.dateAdapter.startOfDay(this.selectedStartDate)
-      );
-      sameEnd = this.dateAdapter.isEqual(
-        this.dateAdapter.startOfDay(period.value[1] as Date),
-        this.dateAdapter.startOfDay(this.selectedEndDate)
-      );
-      period.arrow = sameStart && sameEnd;
-      return sameStart && sameEnd;
-    }
-
-    // period.arrow = !this.periods.find(p => p.arrow)?.arrow;
-
-    return false;
-  }
-
-  selectPeriod(period: CustomLabels) {
-    this.selectedPeriod = period.value;
-    let start: Date, end: Date;
-    if (period.value != 'custom') {
-      start = period.value[0];
-      end = period.value[1];
-
-      this.dateRangeSelected.emit({ start, end });
-      return;
+  handleRangeSelection(date: Date): void {
+    if (!this.selectedStartDate || 
+        (this.selectedStartDate && this.selectedEndDate) || 
+        this.dateAdapter.isBefore(date, this.selectedStartDate)) {
+      this.selectedStartDate = date;
+      this.selectedEndDate = null;
+      this.activeInput = 'end';
+      this.dpService.activeInput$.next('end');
+      this.dateRangeSelected.emit({ start: this.selectedStartDate, end: null });
+    } else {
+      this.selectedEndDate = date;
+      this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
     }
   }
 
-  prevMonth() {
-    if (this.isPrevMonthDisabled()) {
+  handleSingleSelection(date: Date): void {
+    this.selectedDate = date;
+    this.dateSelected.emit(date);
+  }
+
+  selectMonth(month: number, closeAfterSelection: boolean = false): void {
+    if (this.isMonthDisabled(month)) return;
+
+    this.currentDate = this.dateAdapter.createDate(
+      this.dateAdapter.getYear(this.currentDate), 
+      month - 1, 
+      1
+    );
+
+    if (this.mode === 'month' || closeAfterSelection) {
+      this.selectedDate = this.currentDate;
+      this.dateSelected.emit(this.currentDate);
+      this.closeDatePicker();
+    } else {
+      this.viewMode = 'days';
+      this.generateCalendar();
+      this.cdr.detectChanges();
+    }
+
+    this.scrollToSelectedItem(month);
+  }
+
+  selectYear(year: number, sideSelector = false): void {
+    if (this.isYearDisabled(year)) return;
+
+    this.currentDate = this.dateAdapter.createDate(
+      year, 
+      this.dateAdapter.getMonth(this.currentDate), 
+      1
+    );
+
+    if (this.mode === 'year') {
+      this.selectedDate = this.currentDate;
+      this.dateSelected.emit(this.currentDate);
+      this.closeDatePicker();
       return;
     }
+
+    if (sideSelector) {
+      this.currentDate = this.dateAdapter.setYear(this.selectedDate, year);
+      this.scrollToSelectedItem(year);
+    } else {
+      this.viewMode = 'months';
+      this.cdr.detectChanges();
+    }
+  }
+
+  // ========== Navigation Methods ==========
+  goPrev(): void {
+    if (this.viewMode === 'days') {
+      this.prevMonth();
+      return;
+    }
+
+    let id: number;
+    if (this.viewMode === 'months') {
+      this.currentDate = this.dateAdapter.addYears(this.currentDate, -1);
+      id = this.dateAdapter.getYear(this.currentDate);
+    }
+
+    if (this.viewMode === 'years') {
+      const yearStart = this.yearList[0] - 15;
+      this.yearList = Array.from({ length: 15 }, (_, i) => yearStart + i);
+      id = yearStart;
+    }
+
+    this.cdr.detectChanges();
+    this.scrollToSelectedItem(id);
+  }
+
+  goNext(): void {
+    if (this.viewMode === 'days') {
+      this.nextMonth();
+      return;
+    }
+
+    let id: number;
+    if (this.viewMode === 'months') {
+      this.currentDate = this.dateAdapter.addYears(this.currentDate, 1);
+      id = this.dateAdapter.getYear(this.currentDate);
+    }
+
+    if (this.viewMode === 'years') {
+      const yearStart = this.yearList[14] + 1;
+      this.yearList = Array.from({ length: 15 }, (_, i) => yearStart + i);
+      id = yearStart;
+    }
+
+    this.cdr.detectChanges();
+    this.scrollToSelectedItem(id);
+  }
+
+  prevMonth(): void {
+    if (this.isPrevMonthDisabled()) return;
     this.currentDate = this.dateAdapter.addMonths(this.currentDate, -1);
     this.generateCalendar();
-    this.scrollToSelectedItem(this.dateAdapter.getMonth(this.currentDate)+1);
+    this.scrollToSelectedItem(this.dateAdapter.getMonth(this.currentDate) + 1);
   }
 
-  nextMonth() {
-    if (this.isNextMonthDisabled()) {
-      return;
-    }
+  nextMonth(): void {
+    if (this.isNextMonthDisabled()) return;
     this.currentDate = this.dateAdapter.addMonths(this.currentDate, 1);
     this.generateCalendar();
-    this.scrollToSelectedItem(this.dateAdapter.getMonth(this.currentDate)+1);
+    this.scrollToSelectedItem(this.dateAdapter.getMonth(this.currentDate) + 1);
   }
 
+  // ========== State Check Methods ==========
   isSelected(date: Date): boolean {
     if (this.isRange) {
       return this.isRangeStart(date) || this.isRangeEnd(date);
-    } else {
-      return this.selectedDate && this.dateAdapter.isSameDay(date, this.selectedDate);
     }
+    return this.selectedDate && this.dateAdapter.isSameDay(date, this.selectedDate);
   }
 
   isRangeStart(date: Date): boolean {
-    return this.isRange && this.selectedStartDate && this.dateAdapter.isSameDay(date, this.selectedStartDate);
+    return this.isRange && 
+           this.selectedStartDate && 
+           this.dateAdapter.isSameDay(date, this.selectedStartDate);
   }
 
   isRangeEnd(date: Date): boolean {
-    return this.isRange && this.selectedEndDate && this.dateAdapter.isSameDay(date, this.selectedEndDate);
+    return this.isRange && 
+           this.selectedEndDate && 
+           this.dateAdapter.isSameDay(date, this.selectedEndDate);
   }
 
   isInRange(date: Date): boolean {
-    return this.isRange && this.selectedStartDate && (this.selectedEndDate || this.tempEndDate) &&
+    return this.isRange && 
+           this.selectedStartDate && 
+           (this.selectedEndDate || this.tempEndDate) &&
            this.dateAdapter.isAfter(date, this.selectedStartDate) &&
            this.dateAdapter.isBefore(date, this.selectedEndDate || this.tempEndDate);
   }
@@ -428,12 +460,94 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     return this.dateAdapter.isSameDay(date, this.dateAdapter.today()) && this.showToday;
   }
 
-  onMouseEnter(date: Date, event: Event) {
+  isActiveMonth(month: number): boolean {
+    return this.dateAdapter.getMonth(this.currentDate) === month - 1;
+  }
+
+  isActiveYear(year: number): boolean {
+    return year === this.dateAdapter.getYear(this.currentDate);
+  }
+
+  isActiveYearRange(startYear: number): boolean {
+    return startYear === this.yearList[0];
+  }
+
+  // ========== Disabled State Methods ==========
+  isDateDisabled(date: Date): boolean {
+    return (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) ||
+           (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate));
+  }
+
+  isMonthDisabled(month: number): boolean {
+    const year = this.dateAdapter.getYear(this.currentDate);
+    const startOfMonth = this.dateAdapter.createDate(year, month - 1, 1);
+    const endOfMonth = this.dateAdapter.endOfMonth(startOfMonth);
+    return this.isDateDisabled(startOfMonth) && this.isDateDisabled(endOfMonth);
+  }
+
+  isYearDisabled(year: number): boolean {
+    if (this.minDate && this.dateAdapter.getYear(this.minDate) > year) return true;
+    if (this.maxDate && this.dateAdapter.getYear(this.maxDate) < year) return true;
+    return false;
+  }
+
+  isYearRangeDisabled(yearRange: YearRange): boolean {
+    if (this.minDate && this.dateAdapter.getYear(this.minDate) > yearRange.end) return true;
+    if (this.maxDate && this.dateAdapter.getYear(this.maxDate) < yearRange.start) return true;
+    return false;
+  }
+
+  isPrevMonthDisabled(): boolean {
+    if (!this.minDate) return false;
+
+    const minYear = this.dateAdapter.getYear(this.minDate);
+
+    switch (this.viewMode) {
+      case 'days':
+        const prevMonth = this.dateAdapter.getMonth(this.currentDate) - 1;
+        return this.dateAdapter.getMonth(this.minDate) > prevMonth;
+      case 'months':
+        const prevYear = this.dateAdapter.getYear(this.currentDate) - 1;
+        return minYear > prevYear;
+      case 'years':
+        return minYear > this.yearList[this.yearList.length - 1];
+      default:
+        return false;
+    }
+  }
+
+  isNextMonthDisabled(): boolean {
+    if (!this.maxDate) return false;
+
+    const maxYear = this.dateAdapter.getYear(this.maxDate);
+
+    switch (this.viewMode) {
+      case 'days':
+        const nextMonth = this.dateAdapter.getMonth(this.currentDate) + 1;
+        return this.dateAdapter.getMonth(this.maxDate) < nextMonth;
+      case 'months':
+        const nextYear = this.dateAdapter.getYear(this.currentDate) + 1;
+        return maxYear < nextYear;
+      case 'years':
+        return maxYear < this.yearList[0];
+      default:
+        return false;
+    }
+  }
+
+  // ========== Event Handlers ==========
+  onMouseEnter(date: Date, event: Event): void {
     if (this.isRange && this.selectedStartDate && !this.selectedEndDate) {
       this.tempEndDate = date;
     }
   }
 
+  @HostListener('click')
+  onClickInside(): void {
+    this.clickInside.emit(true);
+  }
+
+  // ========== Utility Methods ==========
   getMonthName(month: number): string {
     return this.dateAdapter.getMonthNames('long')[month - 1];
   }
@@ -450,240 +564,165 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     return this.weekDays;
   }
 
-  isActiveMonth(month: number): boolean {
-    return this.dateAdapter.getMonth(this.currentDate) === month - 1;
-  }
-
   isSameMonth(date1: Date, date2: Date): boolean {
     return this.dateAdapter.isSameMonth(date1, date2);
   }
 
-  // year section
-  showYearSelector() {
-    this.viewMode = 'years';
-    this.generateYearRanges();
-    this.generateYearList();
-    this.scrollToSelectedItem();
-    this.cdr.detectChanges();
+  closeDatePicker(): void {
+    this.closePicker.emit();
   }
 
-  generateYearRanges() {
+  // ========== Year Management Methods ==========
+  generateYearRanges(): void {
     const currentYear = this.dateAdapter.getYear(this.dateAdapter.today());
     const startYear = Math.floor(currentYear / 15) * 15 - 90; // Start 6 ranges before the current year
     this.yearRanges = [];
+    
     for (let i = 0; i < 15; i++) {
       const start = startYear + i * 15;
       this.yearRanges.push({ start, end: start + 14 });
     }
   }
 
-  generateYearList(length: number = 15) {
-    let date = this.selectedDate || this.selectedEndDate || this.selectedStartDate || new Date();
+  generateYearList(length: number = 15): void {
+    const date = this.selectedDate || this.selectedEndDate || this.selectedStartDate || new Date();
     const currentYear = this.dateAdapter.getYear(date);
-    const currentRange = this.yearRanges.find((range:any) => range.start <= currentYear && range.end >= currentYear);
-    const startYear = this.dateAdapter.getYear(date) - (Math.round(length/2));
-    let start = this.viewMode == 'years'? currentRange.start: startYear;
     
-    this.yearList = Array.from({length: length}, (_, i) => start + i);
+    let start: number;
+    if (this.viewMode === 'years') {
+      const currentRange = this.yearRanges.find(range => 
+        range.start <= currentYear && range.end >= currentYear
+      );
+      start = currentRange ? currentRange.start : currentYear;
+    } else {
+      start = this.dateAdapter.getYear(date) - Math.round(length / 2);
+    }
+    
+    this.yearList = Array.from({ length }, (_, i) => start + i);
   }
 
-  selectYearRange(startYear: number) {
-    this.yearList = Array.from({length: 15}, (_, i) => startYear + i);
+  selectYearRange(startYear: number): void {
+    this.yearList = Array.from({ length: 15 }, (_, i) => startYear + i);
     this.viewMode = 'years';
     this.cdr.detectChanges();
     this.scrollToSelectedItem(startYear);
   }
 
-  selectYear(year: number, sideSelector = false) {
-    if (this.isYearDisabled(year)) {
-      return;
-    }
+  // ========== Period Selection Methods ==========
+  isActivePeriod(period: CustomLabels): boolean {
+    if (period.value === 'custom') return false;
 
-    this.currentDate = this.dateAdapter.createDate(year, this.dateAdapter.getMonth(this.currentDate), 1);
-    if (this.mode === 'year') {
-      this.selectedDate = this.currentDate;
-      this.dateSelected.emit(this.currentDate);
-      // Close the date picker
-      this.closeDatePicker();
-      return;
-    }
-    if (sideSelector) {
-      this.currentDate = this.dateAdapter.setYear(this.selectedDate, year);
-      this.scrollToSelectedItem(year);
-    } else {
-      setTimeout(() => {
-        this.viewMode = 'months';
-        this.cdr.detectChanges();
-      }, 0);
-    }
-    this.cdr.detectChanges();
+    const sameStart = this.dateAdapter.isEqual(
+      this.dateAdapter.startOfDay(period.value[0] as Date),
+      this.dateAdapter.startOfDay(this.selectedStartDate)
+    );
+    
+    const sameEnd = this.dateAdapter.isEqual(
+      this.dateAdapter.startOfDay(period.value[1] as Date),
+      this.dateAdapter.startOfDay(this.selectedEndDate)
+    );
+
+    period.arrow = sameStart && sameEnd;
+    return sameStart && sameEnd;
   }
 
-  isActiveYear(year: number) {
-    return year == this.dateAdapter.getYear(this.currentDate);
+  selectPeriod(period: CustomLabels): void {
+    this.selectedPeriod = period.value;
+    
+    if (period.value !== 'custom') {
+      const [start, end] = period.value as Date[];
+      this.dateRangeSelected.emit({ start, end });
+    }
   }
 
-  isActiveYearRange(startYear: number) {
-    return startYear == this.yearList[0];
+  // ========== Scroll Management ==========
+  scrollToSelectedItem(id: number | null = null): void {
+    if (!this.showSidebar) return;
+
+    if (this.timeoutId != null) {
+      clearTimeout(this.timeoutId);
+    }
+
+    const itemId = this.determineScrollItemId(id);
+    if (!itemId || !this.itemSelector) return;
+
+    this.timeoutId = setTimeout(() => {
+      const selectedElement = this.itemSelector.nativeElement.querySelector(`#selector_${itemId}`);
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 0);
   }
 
-  adjustCurrentDateToValidRange() {
+  determineScrollItemId(id: number | null): number | null {
+    if (id != null) return id;
+    if (!this.getDate) return null;
+
+    switch (this.viewMode) {
+      case 'days':
+        return this.dateAdapter.getMonth(this.getDate) + 1;
+      case 'months':
+        return this.dateAdapter.getYear(this.getDate);
+      case 'years':
+        const currentYear = this.dateAdapter.getYear(this.getDate);
+        const currentRange = this.yearRanges.find(range => 
+          range.start <= currentYear && range.end >= currentYear
+        );
+        return currentRange?.start || null;
+      default:
+        return null;
+    }
+  }
+
+  // ========== State Management ==========
+  handleChanges(changes: SimpleChanges): void {
+    if (changes['calendarType']) {
+      this.setDateAdapter();
+    }
+    
+    if (changes['selectedDate'] || 
+        changes['selectedStartDate'] || 
+        changes['selectedEndDate'] || 
+        changes['mode'] || 
+        changes['calendarType']) {
+      this.setInitialDate();
+      this.generateCalendar();
+    }
+    
+    if (changes['minDate'] || changes['maxDate']) {
+      this.adjustCurrentDateToValidRange();
+    }
+  }
+
+  setInitialDate(): void {
+    this.currentDate = this.determineInitialDate();
+    this.setViewMode();
+    this.adjustCurrentDateToValidRange();
+  }
+
+  determineInitialDate(): Date {
+    if (this.isRange) {
+      if (this.activeInput === 'start') {
+        return this.selectedStartDate || this.dateAdapter.today();
+      }
+      return this.selectedEndDate || this.selectedStartDate || this.dateAdapter.today();
+    }
+    
+    return this.selectedDate || this.dateAdapter.today();
+  }
+
+  adjustCurrentDateToValidRange(): void {
     let adjustedDate = this.currentDate;
+    
     if (this.minDate && this.dateAdapter.isBefore(adjustedDate, this.minDate)) {
       adjustedDate = this.minDate;
     } else if (this.maxDate && this.dateAdapter.isAfter(adjustedDate, this.maxDate)) {
       adjustedDate = this.maxDate;
     }
 
-    // Ensure we're not changing the date unnecessarily
     if (!this.dateAdapter.isSameDay(this.currentDate, adjustedDate)) {
       this.currentDate = adjustedDate;
       this.generateCalendar();
     }
-  }
-
-  isDateDisabled(date: Date): boolean {
-    return (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) ||
-           (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate));
-  }
-
-  isMonthDisabled(month: number): boolean {
-    const year = this.dateAdapter.getYear(this.currentDate);
-    const startOfMonth = this.dateAdapter.createDate(year, month - 1, 1);
-    const endOfMonth = this.dateAdapter.endOfMonth(startOfMonth);
-    return this.isDateDisabled(startOfMonth) && this.isDateDisabled(endOfMonth);
-  }
-
-  isYearDisabled(year: number): boolean {
-    let isDisabled = false;
-    let minYear;
-    let maxYear;
-    if (this.minDate) {
-      minYear = this.dateAdapter.getYear(this.minDate);
-      isDisabled = minYear > year;
-    }
-    if (this.maxDate) {
-      maxYear = this.dateAdapter.getYear(this.maxDate);
-      isDisabled = maxYear < year;
-    }
-
-    if (this.minDate && this.maxDate) {
-      isDisabled = minYear > year || maxYear < year;
-    }
-    return isDisabled;
-  }
-
-  isYearRangeDisabled(yearRange: YearRange): boolean {
-    let isDisabled = false;
-    let minYear;
-    let maxYear;
-    if (this.minDate) {
-      minYear = this.dateAdapter.getYear(this.minDate);
-      isDisabled = minYear > yearRange.end;
-    }
-    if (this.maxDate) {
-      maxYear = this.dateAdapter.getYear(this.maxDate);
-      isDisabled = maxYear < yearRange.start;
-    }
-
-    if (this.minDate && this.maxDate) {
-      isDisabled = minYear > yearRange.end || maxYear < yearRange.start;
-    }
-    return isDisabled;
-  }
-
-  isPrevMonthDisabled(): boolean {
-    if (!this.minDate)
-      return false;
-
-    if (this.viewMode == 'days') {
-      const prevMonth = this.dateAdapter.getMonth(this.currentDate) - 1;
-      const minMonth = this.dateAdapter.getMonth(this.minDate); 
-      return minMonth > prevMonth;
-    }
-    if (this.viewMode == 'months') {
-      const prevYear = this.dateAdapter.getYear(this.currentDate)-1;
-      const minYear = this.dateAdapter.getYear(this.minDate);
-      return minYear > prevYear;
-    }
-
-    // for this.viewMode == 'years'
-    const prevYearRangEnd = this.yearList[this.yearList.length];
-    const minYear = this.dateAdapter.getYear(this.minDate);
-    return minYear > prevYearRangEnd;
-  }
-
-  isNextMonthDisabled(): boolean {
-    if (!this.maxDate)
-      return false;
-
-    if (this.viewMode == 'days') {
-      const nextMonth = this.dateAdapter.getMonth(this.currentDate) + 1;
-      const maxMonth = this.dateAdapter.getMonth(this.maxDate);
-      return maxMonth < nextMonth;
-    }
-    if (this.viewMode == 'months') {
-      const nextYear = this.dateAdapter.getYear(this.currentDate)+1;
-      const maxYear = this.dateAdapter.getYear(this.maxDate);
-      return maxYear < nextYear;
-    }
-
-    // for this.viewMode == 'years'
-    const nextYearRangStart = this.yearList[0];
-    const maxYear = this.dateAdapter.getYear(this.maxDate);
-    return maxYear < nextYearRangStart;
-  }
-
-  closeDatePicker() {
-    this.closePicker.emit();
-  }
-
-  goPrev() {
-    if (this.viewMode == 'days') {
-      this.prevMonth();
-      return;
-    }
-
-    let id: number;
-    if (this.viewMode == 'months') {
-      this.currentDate = this.dateAdapter.addYears(this.currentDate, -1);
-      id = this.dateAdapter.getYear(this.currentDate);
-    }
-
-    if (this.viewMode == 'years') {
-      let yearStart = this.yearList[0] - 15;
-      this.yearList = Array.from({length: 15}, (_, i) => yearStart + i);
-      id = yearStart;
-    }
-
-    this.cdr.detectChanges();
-    this.scrollToSelectedItem(id);
-  }
-
-  goNext() {
-    if (this.viewMode == 'days') {
-      this.nextMonth();
-      return;
-    }
-
-    let id: number;
-    if (this.viewMode == 'months') {
-      this.currentDate = this.dateAdapter.addYears(this.currentDate, 1);
-      id = this.dateAdapter.getYear(this.currentDate);
-    }
-
-    if (this.viewMode == 'years') {
-      let yearStart = this.yearList[14] + 1;
-      this.yearList = Array.from({length: 15}, (_, i) => yearStart + i);
-      id = yearStart;
-    }
-
-    this.cdr.detectChanges();
-    this.scrollToSelectedItem(id);
-  }
-
-  @HostListener('click')
-  onClickInside() {
-    this.clickInside.emit(true);
   }
 }
