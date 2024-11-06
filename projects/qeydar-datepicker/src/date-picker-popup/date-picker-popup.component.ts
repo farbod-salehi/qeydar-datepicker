@@ -141,6 +141,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() footerDescription: string = '';
   @Input() activeInput: 'start' | 'end' | '' = null;
   @Input() showSidebar: boolean = true;
+  @Input() showToday: boolean;
 
   @Output() dateSelected = new EventEmitter<Date>();
   @Output() dateRangeSelected = new EventEmitter<DateRange>();
@@ -229,7 +230,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       if (this.activeInput == 'start') {
         this.currentDate = this.selectedStartDate || this.dateAdapter.today();
       } else {
-        this.currentDate = this.selectedEndDate || this.dateAdapter.today();
+        this.currentDate = this.selectedEndDate;
       }
     } else {
       if (this.selectedDate) {
@@ -336,6 +337,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       ) {
         this.selectedStartDate = date;
         this.selectedEndDate = null;
+        this.activeInput = 'end';
+        this.dpService.activeInput$.next('end');
+        this.dateRangeSelected.emit({ start: this.selectedStartDate, end: null });
       } else {
         this.selectedEndDate = date;
         this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
@@ -421,7 +425,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   isToday(date: Date): boolean {
-    return this.dateAdapter.isSameDay(date, this.dateAdapter.today());
+    return this.dateAdapter.isSameDay(date, this.dateAdapter.today()) && this.showToday;
   }
 
   onMouseEnter(date: Date, event: Event) {

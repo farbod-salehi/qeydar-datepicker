@@ -714,6 +714,8 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
       this.isOpen = false;
       this.openChange.emit(false);
     }
+
+    this.cdref.detectChanges();
   }
 
   selectHour(hour: number): void {

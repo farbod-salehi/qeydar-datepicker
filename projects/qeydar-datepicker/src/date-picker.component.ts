@@ -1,4 +1,4 @@
-import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject, AfterViewInit, ViewChildren, QueryList, NgZone } from '@angular/core';
+import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject, AfterViewInit, ViewChildren, QueryList, NgZone, OnDestroy } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { slideMotion } from './animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
@@ -25,7 +25,7 @@ export type RangePartType = 'start' | 'end' | '';
             type="text"
             formControlName="dateInput"
             [qeydar-dateMask]="format"
-            (focus)="onFocusInput(null,$event)"
+            (click)="onFocusInput(null,$event)"
             (focusout)="onFocusout($event)"
             (blur)="onInputBlur(null,$event)"
             (keydown)="onInputKeydown($event)"
@@ -49,7 +49,7 @@ export type RangePartType = 'start' | 'end' | '';
             type="text"
             formControlName="startDateInput"
             [qeydar-dateMask]="format"
-            (focus)="onFocusInput('start',$event)"
+            (click)="onFocusInput('start',$event)"
             (focusout)="onFocusout($event)"
             (blur)="onInputBlur('start',$event)"
             (keydown)="onInputKeydown($event)"
@@ -62,7 +62,7 @@ export type RangePartType = 'start' | 'end' | '';
             type="text"
             formControlName="endDateInput"
             [qeydar-dateMask]="format"
-            (focus)="onFocusInput('end',$event)"
+            (click)="onFocusInput('end',$event)"
             (focusout)="onFocusout($event)"
             (blur)="onInputBlur('end',$event)"
             (keydown)="onInputKeydown($event)"
@@ -103,6 +103,7 @@ export type RangePartType = 'start' | 'end' | '';
             [footerDescription]="footerDescription"
             [activeInput]="activeInput"
             [showSidebar]="showSidebar"
+            [showToday]="showToday"
             (dateSelected)="onDateSelected($event)"
             (dateRangeSelected)="onDateRangeSelected($event)"
             (closePicker)="close()"
@@ -118,6 +119,7 @@ export type RangePartType = 'start' | 'end' | '';
         [cdkConnectedOverlayOpen]="isOpen"
         [cdkConnectedOverlayPositions]="overlayPositions"
         [cdkConnectedOverlayTransformOriginOn]="'.qeydar-picker-wrapper'"
+        [cdkConnectedOverlayHasBackdrop]="false"
         (positionChange)="onPositionChange($event)"
         (detach)="close()"
       >
@@ -148,6 +150,7 @@ export type RangePartType = 'start' | 'end' | '';
       border: 1px solid #d9d9d9;
       border-radius: 4px;
       font-size: 14px;
+      outline: none;
       transition: all 0.3s;
     }
     input:hover {
@@ -218,7 +221,7 @@ export type RangePartType = 'start' | 'end' | '';
   ],
   animations: [slideMotion]
 })
-export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChanges, AfterViewInit {
+export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChanges, AfterViewInit, OnDestroy {
   @Input() rtl = false;
   @Input() mode: 'day' | 'month' | 'year' = 'day';
   @Input() isRange = false;
@@ -237,6 +240,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() isInline: boolean = false;
   @Input() showSidebar: boolean = true;
   @Input() emitInDateFormat: boolean = false;
+  @Input() showToday: boolean = false;
 
   @Output() onFocus: EventEmitter<any> = new EventEmitter();
   @Output() onBlur: EventEmitter<any> = new EventEmitter();
@@ -263,6 +267,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   private isInternalChange = false;
   private lastEmittedValue: any = null;
+  private documentClickListener: (event: MouseEvent) => void;
 
   constructor(
     private fb: FormBuilder,
@@ -281,6 +286,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       startDateInput: [''],
       endDateInput: ['']
     });
+    this.documentClickListener = this.handleDocumentClick.bind(this);
   }
 
   private setPlacement(placement: Placement): void {
@@ -322,6 +328,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     const activeInputElement = this.getInput(this.activeInput);
     if (this.document.activeElement !== activeInputElement) {
       activeInputElement?.focus();
+      let length = activeInputElement.value?.length;
+      activeInputElement.setSelectionRange(length,length);
     }
   }
 
@@ -350,6 +358,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   ngOnInit() {
     this.setDateAdapter();
     this.setupFormControls();
+    document.addEventListener('click', this.documentClickListener);
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -388,6 +397,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
           }
         })
     );
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener('click', this.documentClickListener);
   }
 
   setDateAdapter() {
@@ -553,6 +566,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       this.close();
     }
     this.updateDatePickerPopup();
+    this.focus();
   }
 
   updateDatePickerPopup() {
@@ -569,14 +583,17 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   onDateRangeSelected(dateRange: { start: Date, end: Date }) {
     this.selectedStartDate = this.clampDate(dateRange.start);
-    this.selectedEndDate = this.clampDate(dateRange.end);
     const startFormatted = this.dateAdapter.format(this.selectedStartDate, this.format);
-    const endFormatted = this.dateAdapter.format(this.selectedEndDate, this.format);
     this.form.get('startDateInput')?.setValue(startFormatted, { emitEvent: false });
-    this.form.get('endDateInput')?.setValue(endFormatted, { emitEvent: false });
-    this.emitValueIfChanged();
-    this.close();
-    this.updateDatePickerPopup();
+    if (dateRange.end) {
+      this.selectedEndDate = this.clampDate(dateRange.end);
+      const endFormatted = this.dateAdapter.format(this.selectedEndDate, this.format);
+      this.form.get('endDateInput')?.setValue(endFormatted, { emitEvent: false });
+      this.emitValueIfChanged();
+      this.close();
+      this.updateDatePickerPopup();
+      this.focus();
+    }
   }
 
   dateFormatValidator(control: AbstractControl): ValidationErrors | null {
@@ -705,5 +722,12 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   registerOnTouched(fn: any): void {
     this.onTouch = fn;
+  }
+
+  private handleDocumentClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target) && this.isOpen) {
+      this.close();
+      this.onInputBlur(<any>this.activeInput,<any>event);
+    }
   }
 }

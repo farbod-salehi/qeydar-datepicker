@@ -10,14 +10,17 @@
      [maxDate]="maxDate"
      [minDate]="minDate"
      [mode]="'day'"
-     [showSidebar]="false"
+     [showSidebar]="true"
     (ngModelChange)="onChange($event)"></qeydar-date-picker>
-    <input type="text">
-    <qeydar-time-picker displayFormat="hh"  format="12" [(ngModel)]="myDate" (ngModelChange)="onChange($event)"></qeydar-time-picker>
+    <a-input [(ngModel)]="myValue" (ngModelChange)="onChangeValue($event)"></a-input>
+    <qeydar-time-picker [maxTime]="'21:30'"
+    [minTime]="'17:10'" [(ngModel)]="myDate" (ngModelChange)="onChange($event)"></qeydar-time-picker>
     <qeydar-time-picker
         timeFormat="24"
         displayFormat="HH:mm:ss"
         valueType="date"
+        [maxTime]="'21:30'"
+        [minTime]="'17:10'"
         [(ngModel)]="myTime"
         (ngModelChange)="onChange($event)"
     ></qeydar-time-picker>

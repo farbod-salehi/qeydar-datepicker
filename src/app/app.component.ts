@@ -14,6 +14,7 @@ export class AppComponent implements OnInit{
   maxDate = new Date(2024,11,16);
   minDate = new Date(2024,5,1);
   myTime = '22:20';
+  myValue: string = 'jgjhghgjj';
 
   ngOnInit(): void {
     // console.log("ngOnInit:",this.minDate,this.maxDate);
@@ -23,5 +24,10 @@ export class AppComponent implements OnInit{
   }
   changeDirection() {
     this.rtl = !this.rtl;
+  }
+
+  onChangeValue(event: any) {
+    console.log("My Value:",event);
+    
   }
 }
