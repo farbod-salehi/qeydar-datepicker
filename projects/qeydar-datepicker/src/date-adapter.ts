@@ -82,6 +82,12 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
 
   parse(value: any, formatString: string): Date | null {
     if (typeof value === 'string') {
+      // Check if it's in ISO 8601 format
+      if (value.includes('T')) {
+        const parsedDate = parseISO(value);
+        return isValidJalali(parsedDate) ? parsedDate : null;
+      }
+
       try {
         const parsedDate = parseJalali(value, formatString, new Date());
         return isValidJalali(parsedDate) ? parsedDate : null;
