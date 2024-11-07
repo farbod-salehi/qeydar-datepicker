@@ -1,3 +1,5 @@
+import { Injectable } from "@angular/core";
+
 export interface CustomLabels {
     label: string,
     value: Array<Date> | 'custom',
@@ -42,6 +44,9 @@ export interface Lang_Locale {
     now: string;
 }
 
+@Injectable({
+    providedIn: 'root'
+})
 export class lang_Fa implements Lang_Locale{
     lastHour:string = "آخرین ساعت";
     lastDay:string = "آخرین روز";
@@ -65,6 +70,9 @@ export class lang_Fa implements Lang_Locale{
     now: string = "اکنون";
 }
 
+@Injectable({
+    providedIn: 'root'
+})
 export class lang_En implements Lang_Locale{
     lastHour:string = "Last Hour";
     lastDay:string = "Last Day";

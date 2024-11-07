@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { FormControl, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-root',
@@ -9,13 +10,17 @@ export class AppComponent implements OnInit{
   title = 'my-datepicker';
   myDate: any = new Date();
   myDateRange: any //= {start:new Date(), end: new Date()};
-  rtl = false;
+  rtl = true;
   rangPicker = false;
-  maxDate = new Date(2024,11,16);
-  minDate = new Date(2024,5,1);
+  maxDate = new Date(2024,11,16).toISOString();
+  minDate = new Date(2024,5,1).toISOString();
   myTime = '22:20';
   myValue: string = 'jgjhghgjj';
 
+  form = new FormGroup({
+    time: new FormControl('17:17'),
+    date: new FormControl('2024-09-29T00:00:00')
+  })
   ngOnInit(): void {
     // console.log("ngOnInit:",this.minDate,this.maxDate);
   }

@@ -40,6 +40,7 @@ import {
   startOfDay,
   isEqual
 } from 'date-fns';
+import { Injectable } from '@angular/core';
 
 export interface DateAdapter<D> {
   today(): D;
@@ -75,6 +76,9 @@ export interface DateAdapter<D> {
   startOfDay (date: D): D;
 }
 
+@Injectable({
+  providedIn: 'root'
+})
 export class JalaliDateAdapter implements DateAdapter<Date> {
   today(): Date {
     return new Date();
@@ -251,6 +255,9 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
   }
 }
 
+@Injectable({
+  providedIn: 'root'
+})
 export class GregorianDateAdapter implements DateAdapter<Date> {
   today(): Date {
     return new Date();
@@ -258,6 +265,12 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
 
   parse(value: any, formatString: string): Date | null {
     if (typeof value === 'string') {
+       // Check if it's in ISO 8601 format
+       if (value.includes('T')) {
+        const parsedDate = parseISO(value);
+        return isValidGregorian(parsedDate) ? parsedDate : null;
+      }
+
       try {
         let parsedDate: Date;
         if (formatString === "ISO") {

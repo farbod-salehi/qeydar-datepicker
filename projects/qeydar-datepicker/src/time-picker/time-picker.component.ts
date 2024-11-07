@@ -10,11 +10,11 @@
  * - Min/Max time validation
  * - Custom styling
  */
-import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup } from '@angular/forms';
 import { CdkOverlayOrigin, ConnectionPositionPair } from '@angular/cdk/overlay';
 import { slideMotion } from '../animation/slide';
-import { lang_En, lang_Fa, Lang_Locale } from '../date-picker-popup/models';
+import { Lang_Locale } from '../date-picker-popup/models';
 import { QeydarDatePickerService } from '../date-picker.service';
 
 type TimeValueType = 'date' | 'string';
@@ -132,7 +132,7 @@ type TimeValueType = 'date' | 'string';
               <button class="now-btn" (click)="selectNow()" type="button">{{ lang.now }}</button>
             </div>
             <div class="footer-actions">
-              <button class="cancel-btn" (click)="cancel()" type="button">{{ lang.cancel }}</button>
+              <!-- <button class="cancel-btn" (click)="cancel()" type="button">{{ lang.cancel }}</button> -->
               <button class="save-btn" (click)="save()" type="button">{{ lang.ok }}</button>
             </div>
           </div>
@@ -335,13 +335,14 @@ type TimeValueType = 'date' | 'string';
   },
   animations: [slideMotion]
 })
-export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDestroy {
+export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDestroy, OnChanges {
   // #region Inputs & Outputs
   @Input() placeholder?: string;
+  @Input() rtl: boolean = false;
   @Input() placement: 'left' | 'right' = 'right';
   @Input() minTime?: string;
   @Input() maxTime?: string;
-  @Input() lang: Lang_Locale = new lang_Fa();
+  @Input() lang: Lang_Locale;
   @Input() valueType: TimeValueType = 'string';
   @Input() cssClass: string = '';
   @Input() showIcon = true;
@@ -418,6 +419,8 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
       timeInput: ['']
     });
     this.documentClickListener = this.handleDocumentClick.bind(this);
+
+    this.lang = this.datePickerService.locale_en;
     this.selectedPeriod = this.lang.am;
     this.periods = [this.lang.am, this.lang.pm];
   }
@@ -429,6 +432,14 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
   ngOnDestroy(): void {
     this.cleanup();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['rtl'] || changes['lang']) {
+      this.lang = changes['lang']? this.lang: (this.rtl? this.datePickerService.locale_fa :this.datePickerService.locale_en);
+      this.selectedPeriod = this.lang.am;
+      this.periods = [this.lang.am, this.lang.pm];
+    }
   }
   // #endregion
 
@@ -761,6 +772,8 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     const outputValue = this.valueType === 'date' 
       ? this.updateDateFromSelection() 
       : this.formatTime();
+
+    if (!this.isTimeValid()) return;
 
     this._value = outputValue;
     this.form.get('timeInput').setValue(this.formatTime(), { emitEvent: false });

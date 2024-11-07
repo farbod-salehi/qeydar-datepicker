@@ -2,7 +2,7 @@ import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChan
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { slideMotion } from './animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
-import { CustomLabels, lang_En, lang_Fa, Lang_Locale, RangeInputLabels } from './date-picker-popup/models';
+import { CustomLabels, Lang_Locale, RangeInputLabels } from './date-picker-popup/models';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
 import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair, HorizontalConnectionPos, VerticalConnectionPos } from '@angular/cdk/overlay';
 import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './overlay/overlay';
@@ -231,8 +231,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() format = 'yyyy/MM/dd';
   @Input() customLabels: Array<CustomLabels> = [];
   @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
-  @Input() minDate: Date | null = null;
-  @Input() maxDate: Date | null = null;
   @Input() lang: Lang_Locale;
   @Input() cssClass = '';
   @Input() footerDescription = '';
@@ -244,7 +242,23 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() showSidebar = true;
   @Input() emitInDateFormat = false;
   @Input() showToday = false;
-
+  @Input() set minDate(date: Date | string | null) {
+    if (date) {
+      this._minDate = date;
+    }
+  };
+  get minDate() : Date {
+    return this._minDate
+  }
+  
+  @Input() set maxDate(date: Date | string | null) {
+    if (date) {
+      this._maxDate = date;
+    }
+  };
+  get maxDate() : Date {
+    return this._maxDate
+  }
   // ========== Output Properties ==========
   @Output() onFocus = new EventEmitter<any>();
   @Output() onBlur = new EventEmitter<any>();
@@ -275,6 +289,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   isInternalChange = false;
   lastEmittedValue: any = null;
   documentClickListener: (event: MouseEvent) => void;
+  private _minDate: any;
+  private _maxDate: any;
 
   constructor(
     public fb: FormBuilder,
@@ -284,6 +300,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     public dpService: QeydarDatePickerService,
     public destroy$: DestroyService,
     public ngZone: NgZone,
+    public jalali: JalaliDateAdapter,
+    public gregorian: GregorianDateAdapter,
     @Inject(DOCUMENT) doc: Document,
   ) {
     this.initializeComponent(doc);
@@ -301,6 +319,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   ngAfterViewInit(): void {
     this.setupAfterViewInit();
+    this._minDate = this.dateAdapter?.parse(this._minDate,this.format);
+    this._maxDate = this.dateAdapter?.parse(this._maxDate,this.format);
   }
 
   ngOnDestroy(): void {
@@ -319,7 +339,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       endDateInput: ['']
     });
     this.documentClickListener = this.handleDocumentClick.bind(this);
-    this.lang = this.calendarType === 'jalali' ? new lang_Fa() : new lang_En();
+    this.lang = this.calendarType === 'jalali' ? this.dpService.locale_fa  : this.dpService.locale_en;
+    this.dpService.locale = this.lang;
   }
 
   initialize(): void {
@@ -334,7 +355,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   // ========== Date Adapter Methods ==========
   setDateAdapter(): void {
-    this.dateAdapter = this.calendarType === 'jalali' ? new JalaliDateAdapter() : new GregorianDateAdapter();
+    this.dateAdapter = this.calendarType === 'jalali' ? this.jalali : this.gregorian;
   }
 
   // ========== Form Control Methods ==========
@@ -352,7 +373,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (changes['calendarType']) {
       this.setDateAdapter();
       this.updateInputValue();
-      this.lang = this.calendarType === 'jalali' ? new lang_Fa() : new lang_En();
+      this.lang = this.calendarType === 'jalali' ? this.dpService.locale_fa : this.dpService.locale_en;
+      this.dpService.locale = this.lang;
     }
     if (changes['minDate'] || changes['maxDate']) {
       this.form.updateValueAndValidity();
@@ -362,6 +384,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     }
     if (changes['placement']) {
       this.setPlacement(this.placement);
+    }
+    if (changes['lang']) {
+      this.lang = changes['lang'].currentValue;
+      this.dpService.locale = this.lang;
     }
   }
 

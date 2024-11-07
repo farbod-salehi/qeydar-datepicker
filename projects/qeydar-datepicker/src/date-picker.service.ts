@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from "@angular/core";
 import { BehaviorSubject, Subject } from "rxjs";
-import { Lang_Locale } from "./date-picker-popup/models";
+import { lang_En, lang_Fa, Lang_Locale } from "./date-picker-popup/models";
 
 export interface ValidTimeResult {
   isValid: boolean;
@@ -10,6 +10,12 @@ export interface ValidTimeResult {
 @Injectable()
 export class QeydarDatePickerService {
   activeInput$: BehaviorSubject<string> = new BehaviorSubject('');
+  locale: Lang_Locale;
+  /**
+   *
+   */
+  constructor(public locale_fa: lang_Fa, public locale_en: lang_En) {
+  }
 
   getActiveInputValue() {
     return this.activeInput$.getValue();

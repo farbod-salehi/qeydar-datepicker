@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener, OnDestroy } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
-import { CustomLabels, DateRange, lang_En, lang_Fa, Lang_Locale, YearRange } from './models';
+import { CustomLabels, DateRange, Lang_Locale, YearRange } from './models';
 import { QeydarDatePickerService } from '../date-picker.service';
 
 @Component({
@@ -176,7 +176,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   constructor(
     public el: ElementRef,
     public cdr: ChangeDetectorRef, 
-    public dpService: QeydarDatePickerService
+    public dpService: QeydarDatePickerService,
+    public jalali: JalaliDateAdapter,
+    public gregorian: GregorianDateAdapter,
   ) {
     cdr.markForCheck();
   }
@@ -223,10 +225,6 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   generateDefaultPeriods(today: Date): void {
     this.periods = [
       { 
-        label: this.lang.lastHour, 
-        value: [this.dateAdapter.addHours(today, 0), this.dateAdapter.addHours(today, -1)] 
-      },
-      { 
         label: this.lang.lastDay, 
         value: [this.dateAdapter.addDays(today, -1), today] 
       },
@@ -248,8 +246,8 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   // ========== Date Adapter Methods ==========
   setDateAdapter(): void {
-    this.dateAdapter = this.calendarType === 'jalali' ? new JalaliDateAdapter() : new GregorianDateAdapter();
-    this.lang = this.calendarType === 'jalali' ? new lang_Fa() : new lang_En();
+    this.dateAdapter = this.calendarType === 'jalali' ? this.jalali : this.gregorian;
+    this.lang = this.dpService.locale;
   }
 
   // ========== Calendar Generation Methods ==========
@@ -610,8 +608,6 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   // ========== Period Selection Methods ==========
   isActivePeriod(period: CustomLabels): boolean {
-    if (period.value === 'custom') return false;
-
     const sameStart = this.dateAdapter.isEqual(
       this.dateAdapter.startOfDay(period.value[0] as Date),
       this.dateAdapter.startOfDay(this.selectedStartDate)
@@ -622,6 +618,12 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       this.dateAdapter.startOfDay(this.selectedEndDate)
     );
 
+    
+    if (period.value === 'custom') {
+      let isActiveOther = this.periods.find(p => p.arrow);
+      return !isActiveOther;
+    };
+    
     period.arrow = sameStart && sameEnd;
     return sameStart && sameEnd;
   }

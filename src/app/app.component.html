@@ -1,39 +1,39 @@
 <button (click)="changeDirection()">to rtl</button>
 <button (click)="rangPicker = !rangPicker">rangpicker on/off</button>
-<div [dir]="rtl? 'rtl': 'ltr'" class="cnt">
+<div [dir]="rtl? 'rtl': 'ltr'" class="cnt" [formGroup]="form">
     <qeydar-date-picker
      [rtl]="rtl"
      [calendarType]="rtl? 'jalali':'georgian'"
-     [(ngModel)]="myDate"
+     
      [isRange]="rangPicker"
      [format]="'yyyy/MM/dd'"
      [maxDate]="maxDate"
      [minDate]="minDate"
      [mode]="'day'"
      [showSidebar]="true"
-    (ngModelChange)="onChange($event)"></qeydar-date-picker>
+    ></qeydar-date-picker>
 
-    <qeydar-time-picker [maxTime]="'21:30'"
-    [minTime]="'17:10'" [(ngModel)]="myDate" (ngModelChange)="onChange($event)"></qeydar-time-picker>
-    <qeydar-time-picker
-        timeFormat="24"
-        displayFormat="HH:mm:ss"
-        valueType="date"
-        [maxTime]="'21:30'"
-        [minTime]="'17:10'"
-        [(ngModel)]="myTime"
-        (ngModelChange)="onChange($event)"
-    ></qeydar-time-picker>
-    <qeydar-date-picker
-        [rtl]="rtl"
-        [showSidebar]="true"
-        [calendarType]="rtl? 'jalali':'georgian'"
-        [(ngModel)]="myDateRange"
-        [isRange]="false"
-        [format]="'yyyy/MM/dd'"
-        [mode]="'day'"
-        (ngModelChange)="onChange($event)"
-        [footerDescription]="'فقط برای تست است.'"
-    >
-    </qeydar-date-picker>
+    <qeydar-time-picker [maxTime]="'21:30'" [rtl]="rtl" (timeChange)="onChange($event)"
+    [minTime]="'17:10'" formControlName="time"></qeydar-time-picker>
 </div>
+<qeydar-time-picker
+    timeFormat="24"
+    displayFormat="HH:mm:ss"
+    valueType="date"
+    [maxTime]="'21:30'"
+    [minTime]="'17:10'"
+    [(ngModel)]="myTime"
+    (ngModelChange)="onChange($event)"
+></qeydar-time-picker>
+<!-- <qeydar-date-picker
+    [rtl]="rtl"
+    [showSidebar]="true"
+    [calendarType]="rtl? 'jalali':'georgian'"
+    [(ngModel)]="myDateRange"
+    [isRange]="false"
+    [format]="'yyyy/MM/dd'"
+    [mode]="'day'"
+    (ngModelChange)="onChange($event)"
+    [footerDescription]="'فقط برای تست است.'"
+>
+</qeydar-date-picker> -->
