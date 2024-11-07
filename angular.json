@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "my-datepicker": {
+    "qeydar-datepicker": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/my-datepicker",
+            "outputPath": "dist/qeydar-datepicker",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -69,10 +69,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "my-datepicker:build:production"
+              "browserTarget": "qeydar-datepicker:build:production"
             },
             "development": {
-              "browserTarget": "my-datepicker:build:development"
+              "browserTarget": "qeydar-datepicker:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -80,7 +80,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "my-datepicker:build"
+            "browserTarget": "qeydar-datepicker:build"
           }
         },
         "test": {

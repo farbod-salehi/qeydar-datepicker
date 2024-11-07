@@ -25,7 +25,7 @@ module.exports = function (config) {
       suppressAll: true // removes the duplicated traces
     },
     coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/my-datepicker'),
+      dir: require('path').join(__dirname, './coverage/qeydar-datepicker'),
       subdir: '.',
       reporters: [
         { type: 'html' },

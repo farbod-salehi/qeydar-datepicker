@@ -7,7 +7,7 @@ import { FormControl, FormGroup } from '@angular/forms';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit{
-  title = 'my-datepicker';
+  title = 'qeydar-datepicker';
   myDate: any = new Date();
   myDateRange = {start:'1403/08/12', end: new Date()};
   rtl = true;
