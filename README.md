@@ -188,10 +188,34 @@ export class AppComponent {
 ## API Reference
 
 ### DatePicker Inputs
-[Previous DatePicker inputs table remains the same]
+| Input             | Type                     | Default       | Description |
+|-------------------|--------------------------|---------------|-------------|
+| rtl               | boolean                  | false         | Right-to-left mode |
+| mode              | 'day' \| 'month' \| 'year' | 'day'      | Selection mode |
+| isRange           | boolean                  | false         | Enable range selection |
+| format            | string                   | 'yyyy/MM/dd'  | Date format |
+| calendarType      | 'jalali' \| 'georgian'   | 'georgian'    | Calendar type |
+| minDate           | Date                     | null          | Minimum selectable date |
+| maxDate           | Date                     | null          | Maximum selectable date |
+| cssClass          | string                   | ''            | Custom CSS class |
+| footerDescription | string                   | ''            | Footer description text |
+| rangeInputLabels  | RangeInputLabels        | undefined     | Labels for range inputs |
+| inputLabel        | string                   | undefined     | Label for single input |
+| placement         | Placement                | 'bottomLeft'  | Dropdown placement |
+| disabled          | boolean                  | false         | Disable the datepicker |
+| isInline          | boolean                  | false         | Show calendar inline |
+| showSidebar       | boolean                  | true          | Show sidebar with months/years |
+| emitInDateFormat  | boolean                  | false         | Emit date object instead of string |
+| showToday         | boolean                  | false         | Highlight today's date |
 
 ### DatePicker Outputs
-[Previous DatePicker outputs table remains the same]
+| Output        | Type                  | Description |
+|--------------|----------------------|-------------|
+| onFocus      | EventEmitter<any>    | Fires when input receives focus |
+| onBlur       | EventEmitter<any>    | Fires when input loses focus |
+| onChangeValue | EventEmitter<any>    | Fires when value changes |
+| onOpenChange  | EventEmitter<boolean> | Fires when picker opens/closes |
+
 
 ### TimePicker Inputs
 
