@@ -9,9 +9,9 @@ import { FormControl, FormGroup } from '@angular/forms';
 export class AppComponent implements OnInit{
   title = 'my-datepicker';
   myDate: any = new Date();
-  myDateRange: any //= {start:new Date(), end: new Date()};
+  myDateRange = {start:'1403/08/12', end: new Date()};
   rtl = true;
-  rangPicker = false;
+  rangPicker = true;
   maxDate = new Date(2024,11,16).toISOString();
   minDate = new Date(2024,5,1).toISOString();
   myTime = '22:20';

@@ -25,15 +25,17 @@
     [(ngModel)]="myTime"
     (ngModelChange)="onChange($event)"
 ></qeydar-time-picker>
-<!-- <qeydar-date-picker
+<qeydar-date-picker
     [rtl]="rtl"
     [showSidebar]="true"
     [calendarType]="rtl? 'jalali':'georgian'"
     [(ngModel)]="myDateRange"
-    [isRange]="false"
+    [isRange]="true"
+    [maxDate]="maxDate"
+     [minDate]="minDate"
     [format]="'yyyy/MM/dd'"
     [mode]="'day'"
     (ngModelChange)="onChange($event)"
     [footerDescription]="'فقط برای تست است.'"
 >
-</qeydar-date-picker> -->
+</qeydar-date-picker>

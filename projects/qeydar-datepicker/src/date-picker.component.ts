@@ -520,6 +520,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (this.isOpen) {
       this.isOpen = false;
       this.onOpenChange.emit(false);
+      this.cdref.detectChanges();
     }
   }
 

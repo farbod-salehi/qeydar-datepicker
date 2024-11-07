@@ -3,5 +3,12 @@
   "dest": "../../dist/qeydar-datepicker",
   "lib": {
     "entryFile": "src/public-api.ts"
-  }
+  },
+  "allowedNonPeerDependencies": [
+    "date-fns",
+    "date-fns-jalali"
+  ],
+  "assets": [
+    "./styles.css"
+  ]
 }

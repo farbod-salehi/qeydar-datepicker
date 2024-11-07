@@ -1,11 +1,62 @@
 {
-  "name": "qeydar-datepicker",
-  "version": "0.0.1",
+  "name": "@qeydar/datepicker",
+  "version": "1.0.0",
+  "description": "A comprehensive Date and Time Picker for Angular with Jalali calendar support",
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/qeydar-datepicker"
+  },
+  "keywords": [
+    "angular",
+    "datepicker",
+    "timepicker",
+    "jalali",
+    "persian",
+    "date",
+    "calendar",
+    "rangepicker",
+    "date-fns"
+  ],
   "peerDependencies": {
-    "@angular/common": "^14.2.0",
-    "@angular/core": "^14.2.0"
+    "@angular/common": ">=14.0.0",
+    "@angular/core": ">=14.0.0",
+    "@angular/forms": ">=14.0.0",
+    "@angular/cdk": ">=14.0.0",
+    "date-fns": ">=2.0.0",
+    "date-fns-jalali": ">=2.13.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"
+  },
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "build:lib": "ng-packagr -p ng-package.json",
+    "publish:lib": "cd dist/qeydar-datepicker && npm publish --access public",
+    "lint": "ng lint",
+    "prepublishOnly": "npm run build:lib"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.14.0"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/qeydar-datepicker/issues"
+  },
+  "homepage": "https://github.com/yourusername/qeydar-datepicker#readme",
+  "private": false,
+  "exports": {
+    "./styles.css": {
+      "style": "./styles.css"
+    }
   }
 }

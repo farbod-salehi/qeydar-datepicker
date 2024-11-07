@@ -103,7 +103,7 @@
         }
       }
     },
-    "qeydar-datepicker": {
+    "@qeydar/datepicker": {
       "projectType": "library",
       "root": "projects/qeydar-datepicker",
       "sourceRoot": "projects/qeydar-datepicker/src",

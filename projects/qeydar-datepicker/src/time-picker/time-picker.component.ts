@@ -17,7 +17,7 @@ import { slideMotion } from '../animation/slide';
 import { Lang_Locale } from '../date-picker-popup/models';
 import { QeydarDatePickerService } from '../date-picker.service';
 
-type TimeValueType = 'date' | 'string';
+export type TimeValueType = 'date' | 'string';
 
 @Component({
   selector: 'qeydar-time-picker',
