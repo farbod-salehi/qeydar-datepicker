@@ -2,11 +2,11 @@
   "name": "@qeydar/datepicker",
   "version": "1.0.0",
   "description": "A comprehensive Date and Time Picker for Angular with Jalali calendar support",
-  "author": "Your Name",
+  "author": "Abbas Aghayari",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/qeydar-datepicker"
+    "url": "https://github.com/Abbasr7/qeydar-datepicker"
   },
   "keywords": [
     "angular",
@@ -50,9 +50,9 @@
     "npm": ">=6.14.0"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/qeydar-datepicker/issues"
+    "url": "https://github.com/Abbasr7/qeydar-datepicker/issues"
   },
-  "homepage": "https://github.com/yourusername/qeydar-datepicker#readme",
+  "homepage": "https://github.com/Abbasr7/qeydar-datepicker",
   "private": false,
   "exports": {
     "./styles.css": {
