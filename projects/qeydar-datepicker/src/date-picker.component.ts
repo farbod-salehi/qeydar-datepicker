@@ -2,7 +2,7 @@ import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChan
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { slideMotion } from './animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
-import { CustomLabels, Lang_Locale, RangeInputLabels } from './date-picker-popup/models';
+import { CustomLabels, DateRange, Lang_Locale, RangeInputLabels } from './date-picker-popup/models';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
 import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair, HorizontalConnectionPos, VerticalConnectionPos } from '@angular/cdk/overlay';
 import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './overlay/overlay';
@@ -12,72 +12,83 @@ import { fromEvent, takeUntil } from 'rxjs';
 
 export type Placement = 'bottomLeft' | 'bottomRight' | 'topLeft' | 'topRight';
 export type RangePartType = 'start' | 'end' | '';
+export type CalendarType = 'jalali' | 'gregorian';
+export type DatepickerMode = 'day' | 'month' | 'year';
 
 @Component({
   selector: 'qeydar-date-picker',
   template: `
-    <div qeydarDatepickerStyles class="date-picker-wrapper" [formGroup]="form">
-      <ng-container *ngIf="!isRange; else rangeMode">
-        <div>
-          <label for="dateInput" *ngIf="inputLabel">{{ inputLabel }}</label>
-          <input
-            #datePickerInput
-            type="text"
-            formControlName="dateInput"
-            [qeydar-dateMask]="format"
-            (click)="toggleDatePicker(null,$event)"
-            (focus)="onFocusInput(null,$event)"
-            (blur)="onInputBlur(null,$event)"
-            (keydown)="onInputKeydown($event)"
-            [class.focus]="isOpen"
-            [placeholder]="getPlaceholder()"
-          >
-        </div>
+    <div qeydarDatepickerStyles class="date-picker-wrapper" [class.date-picker-rtl]="rtl" [class.disabled]="disabled" [formGroup]="form">
+      <ng-container *ngIf="!isInline; else inlineMode">
+        <ng-container *ngIf="!isRange; else rangeMode">
+          <div class="input-container">
+            <label for="dateInput" *ngIf="inputLabel">{{ inputLabel }}</label>
+            <input
+              #datePickerInput
+              type="text"
+              formControlName="dateInput"
+              [qeydar-dateMask]="format"
+              (click)="toggleDatePicker(null,$event)"
+              (focus)="onFocusInput(null,$event)"
+              (blur)="onInputBlur(null,$event)"
+              (keydown)="onInputKeydown($event)"
+              [class.focus]="isOpen"
+              [placeholder]="getPlaceholder()"
+              [attr.disabled]="disabled? 'disabled':null"
+            >
+            <ng-container *ngTemplateOutlet="icon"></ng-container>
+          </div>
+        </ng-container>
+        <ng-template #rangeMode>
+          <div *ngIf="rangeInputLabels" class="range-input-labels">
+            <div class="start-label">
+              <label for="startDateInput">{{ rangeInputLabels.start }}</label>
+            </div>
+            <div class="end-label">
+              <label for="endDateInput">{{ rangeInputLabels.end }}</label>
+            </div>
+          </div>
+          <div class="range-input-container">
+            <input
+              #rangePickerInput
+              type="text"
+              formControlName="startDateInput"
+              [qeydar-dateMask]="format"
+              (click)="toggleDatePicker('start',$event)"
+              (focus)="onFocusInput('start',$event)"
+              (focusout)="onFocusout($event)"
+              (blur)="onInputBlur('start',$event)"
+              (keydown)="onInputKeydown($event)"
+              [class.focus]="isOpen && activeInput === 'start'"
+              [placeholder]="getPlaceholder('start')"
+              [attr.disabled]="disabled? 'disabled':null"
+            >
+            <span class="range-separator">→</span>
+            <input
+              #rangePickerInput
+              type="text"
+              formControlName="endDateInput"
+              [qeydar-dateMask]="format"
+              (click)="toggleDatePicker('end',$event)"
+              (focus)="onFocusInput('end',$event)"
+              (focusout)="onFocusout($event)"
+              (blur)="onInputBlur('end',$event)"
+              (keydown)="onInputKeydown($event)"
+              [class.focus]="isOpen && activeInput === 'end'"
+              [placeholder]="getPlaceholder('end')"
+              [attr.disabled]="disabled? 'disabled':null"
+            >
+            <ng-container *ngTemplateOutlet="icon"></ng-container>
+          </div>
+        </ng-template>
+        <ng-template #icon>
+            <button class="calendar-button" (click)="toggleDatePicker(null, $event)" tabindex="-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="#999">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M6 2C6 1.44772 6.44772 1 7 1C7.55228 1 8 1.44772 8 2V3H16V2C16 1.44772 16.4477 1 17 1C17.5523 1 18 1.44772 18 2V3H19C20.6569 3 22 4.34315 22 6V20C22 21.6569 20.6569 23 19 23H5C3.34315 23 2 21.6569 2 20V6C2 4.34315 3.34315 3 5 3H6V2ZM16 5V6C16 6.55228 16.4477 7 17 7C17.5523 7 18 6.55228 18 6V5H19C19.5523 5 20 5.44772 20 6V9H4V6C4 5.44772 4.44772 5 5 5H6V6C6 6.55228 6.44772 7 7 7C7.55228 7 8 6.55228 8 6V5H16ZM4 11V20C4 20.5523 4.44772 21 5 21H19C19.5523 21 20 20.5523 20 20V11H4Z" fill="#999"/>
+              </svg>
+            </button>
+        </ng-template>
       </ng-container>
-      <ng-template #rangeMode>
-        <div *ngIf="rangeInputLabels" class="range-input-labels">
-          <div class="start-label">
-            <label for="startDateInput">{{ rangeInputLabels.start }}</label>
-          </div>
-          <div class="end-label">
-            <label for="endDateInput">{{ rangeInputLabels.end }}</label>
-          </div>
-        </div>
-        <div class="range-input-container">
-          <input
-            #rangePickerInput
-            type="text"
-            formControlName="startDateInput"
-            [qeydar-dateMask]="format"
-            (click)="toggleDatePicker('start',$event)"
-            (focus)="onFocusInput('start',$event)"
-            (focusout)="onFocusout($event)"
-            (blur)="onInputBlur('start',$event)"
-            (keydown)="onInputKeydown($event)"
-            [class.focus]="isOpen && activeInput === 'start'"
-            [placeholder]="getPlaceholder('start')"
-          >
-          <span class="range-separator">→</span>
-          <input
-            #rangePickerInput
-            type="text"
-            formControlName="endDateInput"
-            [qeydar-dateMask]="format"
-            (click)="toggleDatePicker('end',$event)"
-            (focus)="onFocusInput('end',$event)"
-            (focusout)="onFocusout($event)"
-            (blur)="onInputBlur('end',$event)"
-            (keydown)="onInputKeydown($event)"
-            [class.focus]="isOpen && activeInput === 'end'"
-            [placeholder]="getPlaceholder('end')"
-          >
-          <button class="calendar-button" (click)="toggleDatePicker(null, $event)" tabindex="-1">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="#999">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M6 2C6 1.44772 6.44772 1 7 1C7.55228 1 8 1.44772 8 2V3H16V2C16 1.44772 16.4477 1 17 1C17.5523 1 18 1.44772 18 2V3H19C20.6569 3 22 4.34315 22 6V20C22 21.6569 20.6569 23 19 23H5C3.34315 23 2 21.6569 2 20V6C2 4.34315 3.34315 3 5 3H6V2ZM16 5V6C16 6.55228 16.4477 7 17 7C17.5523 7 18 6.55228 18 6V5H19C19.5523 5 20 5.44772 20 6V9H4V6C4 5.44772 4.44772 5 5 5H6V6C6 6.55228 6.44772 7 7 7C7.55228 7 8 6.55228 8 6V5H16ZM4 11V20C4 20.5523 4.44772 21 5 21H19C19.5523 21 20 20.5523 20 20V11H4Z" fill="#999"/>
-            </svg>
-          </button>
-        </div>
-      </ng-template>
       <ng-template #inlineMode>
         <div
           class="dp-dropdown"
@@ -110,6 +121,7 @@ export type RangePartType = 'start' | 'end' | '';
             (closePicker)="close()"
             (clickInside)="focus()"
             tabindex="-1"
+            [attr.disabled]="disabled? 'disabled':null"
           ></app-date-picker-popup>
         </div>
       </ng-template>
@@ -126,6 +138,7 @@ export type RangePartType = 'start' | 'end' | '';
       >
         <div
           class="qeydar-picker-wrapper"
+          [class.disabled]="disabled"
           [@slideMotion]="'enter'"
           style="position: relative;"
           (click)="$event.stopPropagation()"
@@ -146,7 +159,6 @@ export type RangePartType = 'start' | 'end' | '';
     }
     input {
       font-family: inherit;
-      width: 100%;
       max-width: 300px;
       padding: 6px 10px;
       border: 1px solid #d9d9d9;
@@ -189,7 +201,7 @@ export type RangePartType = 'start' | 'end' | '';
     .calendar-button {
       background: none;
       border: none;
-      padding: 4px;
+      padding: 4px 4px 0;
       cursor: pointer;
       font-size: 16px;
     }
@@ -202,6 +214,28 @@ export type RangePartType = 'start' | 'end' | '';
     }
     .end-label {
       width: 49%;
+    }
+    .disabled {
+      opacity: 0.8;
+      pointer-events: none;
+    }
+    .disabled .range-input-container {
+      background: #f3f3f3;
+    }
+    .input-container .calendar-button {
+      position: absolute;
+      right: 0;
+      bottom: 5px;
+    }
+    .date-picker-rtl .input-container .calendar-button {
+      right: auto;
+      left: 0;
+    }
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      color: #444
     }
     // rtl
     :dir(rtl) .range-separator{
@@ -226,17 +260,17 @@ export type RangePartType = 'start' | 'end' | '';
 export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChanges, AfterViewInit, OnDestroy {
   // ========== Input Properties ==========
   @Input() rtl = false;
-  @Input() mode: 'day' | 'month' | 'year' = 'day';
+  @Input() mode: DatepickerMode = 'day';
   @Input() isRange = false;
   @Input() format = 'yyyy/MM/dd';
-  @Input() customLabels: Array<CustomLabels> = [];
-  @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
+  @Input() customLabels: Array<CustomLabels>;
+  @Input() calendarType: CalendarType = 'gregorian';
   @Input() lang: Lang_Locale;
   @Input() cssClass = '';
   @Input() footerDescription = '';
   @Input() rangeInputLabels: RangeInputLabels;
   @Input() inputLabel: string;
-  @Input() placement: Placement = 'bottomLeft';
+  @Input() placement: Placement = 'bottomRight';
   @Input() disabled = false;
   @Input() isInline = false;
   @Input() showSidebar = true;
@@ -377,6 +411,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       this.dpService.locale = this.lang;
     }
     if (changes['minDate'] || changes['maxDate']) {
+      this._minDate = this.dateAdapter?.parse(this._minDate,this.format);
+      this._maxDate = this.dateAdapter?.parse(this._maxDate,this.format);
       this.form.updateValueAndValidity();
     }
     if (changes['mode'] || changes['isRange']) {
@@ -388,6 +424,12 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (changes['lang']) {
       this.lang = changes['lang'].currentValue;
       this.dpService.locale = this.lang;
+    }
+    if (changes['mode'] && !changes['format']) {
+      this.format = this.getFormatForMode();
+    }
+    if (changes['isRange'] && this.isRange ==  false) {
+      this.origin = new CdkOverlayOrigin(this.elementRef);
     }
   }
 
@@ -494,15 +536,15 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   }
 
   // ========== Date Range Methods ==========
-  onDateRangeSelected(dateRange: { start: Date; end: Date }): void {
+  onDateRangeSelected(dateRange: DateRange): void {
     this.hideStateHelper = true;
 
-    this.selectedStartDate = this.clampDate(dateRange.start);
+    this.selectedStartDate = this.clampDate(<Date>dateRange.start);
     const startFormatted = this.dateAdapter.format(this.selectedStartDate, this.format);
     this.form.get('startDateInput')?.setValue(startFormatted, { emitEvent: false });
 
     if (dateRange.end) {
-      this.selectedEndDate = this.clampDate(dateRange.end);
+      this.selectedEndDate = this.clampDate(<Date>dateRange.end);
       const endFormatted = this.dateAdapter.format(this.selectedEndDate, this.format);
       this.form.get('endDateInput')?.setValue(endFormatted, { emitEvent: false });
       this.emitValueIfChanged();
@@ -706,8 +748,12 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   }
 
   onFocusInput(inputType: 'start' | 'end' | null, event: Event): void {
-    if (this.hideStateHelper == false)
+    if (this.hideStateHelper == false){
       this.toggleDatePicker(inputType, event);
+      this.hideStateHelper = true
+    } else {
+      this.hideStateHelper = false;
+    }
   }
 
   toggleDatePicker(inputType: 'start' | 'end' | null, event: Event): void {
@@ -838,6 +884,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       .subscribe((active: any) => {
         this.activeInput = active;
         if (active) {
+          if (!this.isOpen)
+            this.origin = new CdkOverlayOrigin(this.activeInput == 'start'? this.rangePickerInputs?.first: this.rangePickerInputs.last)
           this.focus();
         }
       });

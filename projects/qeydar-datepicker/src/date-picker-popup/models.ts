@@ -12,8 +12,8 @@ export interface YearRange {
 }
 
 export interface DateRange {
-    start: Date,
-    end: Date
+    start: Date | string,
+    end: Date | string
 }
 
 export interface RangeInputLabels {
@@ -22,7 +22,6 @@ export interface RangeInputLabels {
 }
 
 export interface Lang_Locale {
-    lastHour: string;
     lastDay: string;
     lastWeek: string;
     lastMonth: string;
@@ -48,7 +47,6 @@ export interface Lang_Locale {
     providedIn: 'root'
 })
 export class lang_Fa implements Lang_Locale{
-    lastHour:string = "آخرین ساعت";
     lastDay:string = "آخرین روز";
     lastWeek:string = "آخرین هفته";
     lastMonth:string = "آخرین ماه";
@@ -74,7 +72,6 @@ export class lang_Fa implements Lang_Locale{
     providedIn: 'root'
 })
 export class lang_En implements Lang_Locale{
-    lastHour:string = "Last Hour";
     lastDay:string = "Last Day";
     lastWeek:string = "Last Week";
     lastMonth:string = "Last Month";

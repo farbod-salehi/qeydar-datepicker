@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChange
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { CustomLabels, DateRange, Lang_Locale, YearRange } from './models';
 import { QeydarDatePickerService } from '../date-picker.service';
+import { CalendarType, DatepickerMode } from '../date-picker.component';
 
 @Component({
   selector: 'app-date-picker-popup',
@@ -62,7 +63,7 @@ import { QeydarDatePickerService } from '../date-picker.service';
           <div class="header">
             <button class="qeydar-calendar-nav-left" (click)="goPrev()" [disabled]="isPrevMonthDisabled()" tabindex="-1"></button>
             <span class="month-year">
-              <span class="month-name" (click)="showMonthSelector()">{{ getCurrentMonthName() }}</span>
+              <span *ngIf="mode != 'year'" class="month-name" (click)="showMonthSelector()">{{ getCurrentMonthName() }}</span>
               <span class="year" (click)="showYearSelector()">{{ getCurrentYear() }}</span>
             </span>
             <button class="qeydar-calendar-nav-right" (click)="goNext()" [disabled]="isNextMonthDisabled()" tabindex="-1"></button>
@@ -89,7 +90,7 @@ import { QeydarDatePickerService } from '../date-picker.service';
               </button>
             </div>
           </div>
-          <div *ngIf="viewMode === 'months' || mode == 'month'" class="months">
+          <div *ngIf="viewMode === 'months'" class="months">
             <button
               *ngFor="let month of monthListNum"
               tabindex="-1"
@@ -132,10 +133,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() selectedDate: Date | null = null;
   @Input() selectedStartDate: Date | null = null;
   @Input() selectedEndDate: Date | null = null;
-  @Input() mode: 'day' | 'month' | 'year' = 'day';
+  @Input() mode: DatepickerMode = 'day';
   @Input() isRange = false;
   @Input() customLabels: Array<CustomLabels> = [];
-  @Input() calendarType: 'jalali' | 'georgian' = 'georgian';
+  @Input() calendarType: CalendarType = 'gregorian';
   @Input() minDate: Date | null = null;
   @Input() maxDate: Date | null = null;
   @Input() cssClass = '';
@@ -215,7 +216,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   initLabels(): void {
     const today = this.dateAdapter.today();
-    if (this.customLabels.length) {
+    if (this.customLabels?.length) {
       this.periods = this.customLabels;
     } else if (this.isRange) {
       this.generateDefaultPeriods(today);
@@ -265,6 +266,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
         break;
       case 'month':
         this.viewMode = 'months';
+        this.generateYearList(15);
         break;
       case 'year':
         this.viewMode = 'years';
@@ -274,7 +276,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   showMonthSelector(): void {
     this.viewMode = 'months';
-    this.generateYearList(100);
+    this.generateYearList(15);
     this.scrollToSelectedItem(this.dateAdapter.getYear(this.getDate));
     this.cdr.detectChanges();
   }
@@ -329,6 +331,11 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       1
     );
 
+    if (this.isRange && this.mode === 'month') {
+      this.handleRangeSelection(this.currentDate);
+      return;
+    }
+
     if (this.mode === 'month' || closeAfterSelection) {
       this.selectedDate = this.currentDate;
       this.dateSelected.emit(this.currentDate);
@@ -350,6 +357,11 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       this.dateAdapter.getMonth(this.currentDate), 
       1
     );
+
+    if (this.isRange && this.mode === 'year') {
+      this.handleRangeSelection(this.currentDate);
+      return;
+    }
 
     if (this.mode === 'year') {
       this.selectedDate = this.currentDate;
@@ -571,13 +583,14 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   // ========== Year Management Methods ==========
-  generateYearRanges(): void {
+  generateYearRanges(length: number = 15): void {
+    const yearCount = 15;
     const currentYear = this.dateAdapter.getYear(this.dateAdapter.today());
-    const startYear = Math.floor(currentYear / 15) * 15 - 90; // Start 6 ranges before the current year
+    const startYear = currentYear - Math.floor(yearCount/2) - (yearCount * Math.floor(length/2));
     this.yearRanges = [];
     
-    for (let i = 0; i < 15; i++) {
-      const start = startYear + i * 15;
+    for (let i = 0; i < length; i++) {
+      const start = startYear + i * yearCount;
       this.yearRanges.push({ start, end: start + 14 });
     }
   }

@@ -10,21 +10,12 @@ import {
     FlexibleConnectedPositionStrategyOrigin,
     ConnectionPositionPair 
 } from '@angular/cdk/overlay';
-import { coerceBooleanProperty, coerceCssPixelValue, _isNumberValue } from '@angular/cdk/coercion';
+import { coerceBooleanProperty, _isNumberValue } from '@angular/cdk/coercion';
 import { Directive, ElementRef, Input } from '@angular/core';
 import { takeUntil } from 'rxjs/operators';
-import { Injectable, OnDestroy } from '@angular/core';
-import { Subject } from 'rxjs';
+import { DestroyService } from 'qeydar-datepicker';
 
 export type SafeAny = any;
-
-@Injectable()
-export class NzDestroyService extends Subject<void> implements OnDestroy {
-    ngOnDestroy(): void {
-        this.next();
-        this.complete();
-    }
-}
 
 function propDecoratorFactory<T, D>(
     name: string,
@@ -94,14 +85,14 @@ type Dimensions = Omit<ClientRect, 'x' | 'y' | 'toJSON'>;
 @Directive({
     selector: '[cdkConnectedOverlay][nzConnectedOverlay]',
     exportAs: 'nzConnectedOverlay',
-    providers: [NzDestroyService]
+    providers: [DestroyService]
 })
 export class NzConnectedOverlayDirective {
     @Input() @InputBoolean() nzArrowPointAtCenter: boolean = false;
 
     constructor(
         private readonly cdkConnectedOverlay: CdkConnectedOverlay,
-        private readonly nzDestroyService: NzDestroyService
+        private readonly nzDestroyService: DestroyService
     ) {
         this.cdkConnectedOverlay.backdropClass = 'nz-overlay-transparent-backdrop';
 
