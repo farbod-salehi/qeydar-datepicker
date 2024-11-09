@@ -1,11 +1,14 @@
 # Qeydar Date and Time Pickers
 
-A comprehensive package providing separate DatePicker and TimePicker components for Angular applications, with support for both Jalali (Persian) and Georgian calendars.
+A comprehensive package providing separate DatePicker and TimePicker components for Angular applications, with support for both Jalali (Persian) and Gregorian calendars.
 This package supports Angular 14 and above. Specific version compatibility:
 
 | Package Version | Angular Version |
 |----------------|-----------------|
 | 1.x.x          | ≥14.0.0        |
+
+## Demo
+You can see the online [Demo](https://qeydar-datepicker.vercel.app)
 
 ## Components
 This package includes two main components:
@@ -14,7 +17,7 @@ This package includes two main components:
 
 ## Features
 ### DatePicker
-- 📅 Support for both Jalali (Persian) and Georgian calendars
+- 📅 Support for both Jalali (Persian) and Gregorian calendars
 - 🎯 Single date and date range selection
 - 🌐 Multilingual support (English/Persian)
 - 📏 Min/Max date restrictions
@@ -194,7 +197,7 @@ export class AppComponent {
 | mode              | 'day' \| 'month' \| 'year' | 'day'      | Selection mode |
 | isRange           | boolean                  | false         | Enable range selection |
 | format            | string                   | 'yyyy/MM/dd'  | Date format |
-| calendarType      | 'jalali' \| 'georgian'   | 'georgian'    | Calendar type |
+| calendarType      | 'jalali' \| 'gregorian'   | 'gregorian'    | Calendar type |
 | minDate           | Date                     | null          | Minimum selectable date |
 | maxDate           | Date                     | null          | Maximum selectable date |
 | cssClass          | string                   | ''            | Custom CSS class |
