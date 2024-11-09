@@ -12,10 +12,11 @@
  */
 import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup } from '@angular/forms';
-import { CdkOverlayOrigin, ConnectionPositionPair } from '@angular/cdk/overlay';
+import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair } from '@angular/cdk/overlay';
 import { slideMotion } from '../animation/slide';
 import { Lang_Locale } from '../date-picker-popup/models';
 import { QeydarDatePickerService } from '../date-picker.service';
+import { DEFAULT_DATE_PICKER_POSITIONS } from 'qeydar-datepicker';
 
 export type TimeValueType = 'date' | 'string';
 
@@ -43,11 +44,13 @@ export type TimeValueType = 'date' | 'string';
 
       <ng-template
         cdkConnectedOverlay
+        nzConnectedOverlay
         [cdkConnectedOverlayOrigin]="origin"
         [cdkConnectedOverlayOpen]="isOpen"
         [cdkConnectedOverlayPositions]="overlayPositions"
         [cdkConnectedOverlayTransformOriginOn]="'.time-picker-popup'"
         [cdkConnectedOverlayHasBackdrop]="false"
+        (positionChange)="onPositionChange($event)"
         (detach)="close()"
       >
         <div 
@@ -398,15 +401,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   private documentClickListener: (event: MouseEvent) => void;
   private timeoutId: any = null;
 
-  overlayPositions: ConnectionPositionPair[] = [
-    {
-      originX: 'start',
-      originY: 'bottom',
-      overlayX: 'start',
-      overlayY: 'top',
-      offsetY: 4
-    }
-  ];
+  overlayPositions: ConnectionPositionPair[] = [...DEFAULT_DATE_PICKER_POSITIONS];
   // #endregion
 
   constructor(
@@ -1076,4 +1071,8 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     });
   }
   // #endregion
+
+  onPositionChange(position: ConnectedOverlayPositionChange): void {
+    this.cdref.detectChanges();
+  }
 }
