@@ -16,7 +16,7 @@ import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPai
 import { slideMotion } from '../animation/slide';
 import { Lang_Locale } from '../date-picker-popup/models';
 import { QeydarDatePickerService } from '../date-picker.service';
-import { DEFAULT_DATE_PICKER_POSITIONS } from 'qeydar-datepicker';
+import { DEFAULT_DATE_PICKER_POSITIONS } from '../public-api';
 
 export type TimeValueType = 'date' | 'string';
 

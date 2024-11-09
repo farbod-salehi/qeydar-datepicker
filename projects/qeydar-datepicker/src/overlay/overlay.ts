@@ -13,7 +13,7 @@ import {
 import { coerceBooleanProperty, _isNumberValue } from '@angular/cdk/coercion';
 import { Directive, ElementRef, Input } from '@angular/core';
 import { takeUntil } from 'rxjs/operators';
-import { DestroyService } from 'qeydar-datepicker';
+import { DestroyService } from '../date-picker.service';
 
 export type SafeAny = any;
 
