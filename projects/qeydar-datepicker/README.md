@@ -8,7 +8,7 @@ This package supports Angular 14 and above. Specific version compatibility:
 | 1.x.x          | ≥14.0.0        |
 
 ## Demo
-You can see the online [Demo](https://qeydar-datepicker.vercel.app)
+You can see the online [Demo](https://datepicker.qydr.ir/)
 
 ## Components
 This package includes two main components:
@@ -38,7 +38,7 @@ This package includes two main components:
 ## Installation
 
 ```bash
-npm install @qeydar/datepicker
+npm install @angular/cdk@<COMPATIBLE_VERSION> @qeydar/datepicker
 ```
 
 ### Dependencies
