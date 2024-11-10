@@ -1,8 +1,7 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
-import { Component, ElementRef, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { CalendarType, DatepickerMode } from 'projects/qeydar-datepicker/src/date-picker.component';
-import { RangeInputLabels, TimeValueType } from 'projects/qeydar-datepicker/src/public-api';
+import { CalendarType, DatepickerMode, RangeInputLabels, TimeValueType } from 'projects/qeydar-datepicker/src/public-api';
 
 @Component({
   selector: 'app-root',

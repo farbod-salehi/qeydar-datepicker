@@ -1,11 +1,11 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener, OnDestroy } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
-import { CustomLabels, DateRange, Lang_Locale, YearRange } from './models';
+import { CustomLabels, DateRange, Lang_Locale, YearRange } from '../utils/models';
 import { QeydarDatePickerService } from '../date-picker.service';
-import { CalendarType, DatepickerMode } from '../date-picker.component';
+import { CalendarType, DatepickerMode } from '../utils/types';
 
 @Component({
-  selector: 'app-date-picker-popup',
+  selector: 'qeydar-date-picker-popup',
   template: `
     <div class="date-picker-popup" [class.rtl]="rtl" [class]="cssClass" tabindex="-1">
       <div class="date-picker-content">

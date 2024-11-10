@@ -5,7 +5,7 @@ import { DateMaskDirective } from './utils/input-mask.directive';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { OverlayModule } from '@angular/cdk/overlay';
-import { NzConnectedOverlayDirective } from './overlay/overlay';
+import { NzConnectedOverlayDirective } from './public-api';
 import { CommonModule } from '@angular/common';
 import { TimePickerComponent } from './time-picker/time-picker.component';
 

@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from "@angular/core";
 import { BehaviorSubject, Subject } from "rxjs";
-import { lang_En, lang_Fa, Lang_Locale } from "./date-picker-popup/models";
+import { lang_En, lang_Fa, Lang_Locale } from "./utils/models";
 
 export interface ValidTimeResult {
   isValid: boolean;

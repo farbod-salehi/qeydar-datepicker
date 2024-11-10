@@ -13,12 +13,11 @@
 import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup } from '@angular/forms';
 import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair } from '@angular/cdk/overlay';
-import { slideMotion } from '../animation/slide';
-import { Lang_Locale } from '../date-picker-popup/models';
+import { slideMotion } from '../utils/animation/slide';
+import { Lang_Locale } from '../utils/models';
 import { QeydarDatePickerService } from '../date-picker.service';
 import { DEFAULT_DATE_PICKER_POSITIONS } from '../public-api';
-
-export type TimeValueType = 'date' | 'string';
+import { TimeValueType } from '../utils/types';
 
 @Component({
   selector: 'qeydar-time-picker',

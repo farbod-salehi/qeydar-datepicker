@@ -1,19 +1,15 @@
 import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject, AfterViewInit, ViewChildren, QueryList, NgZone, OnDestroy } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
-import { slideMotion } from './animation/slide';
+import { slideMotion } from './utils/animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
-import { CustomLabels, DateRange, Lang_Locale, RangeInputLabels } from './date-picker-popup/models';
+import { CustomLabels, DateRange, Lang_Locale, RangeInputLabels } from './utils/models';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
 import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair, HorizontalConnectionPos, VerticalConnectionPos } from '@angular/cdk/overlay';
-import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './overlay/overlay';
+import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './public-api';
 import { DOCUMENT } from '@angular/common';
 import { DestroyService, QeydarDatePickerService } from './date-picker.service';
 import { fromEvent, takeUntil } from 'rxjs';
-
-export type Placement = 'bottomLeft' | 'bottomRight' | 'topLeft' | 'topRight';
-export type RangePartType = 'start' | 'end' | '';
-export type CalendarType = 'jalali' | 'gregorian';
-export type DatepickerMode = 'day' | 'month' | 'year';
+import { CalendarType, DatepickerMode, Placement, RangePartType } from './utils/types';
 
 @Component({
   selector: 'qeydar-date-picker',
@@ -99,7 +95,7 @@ export type DatepickerMode = 'day' | 'month' | 'year';
           [class.qeydar-picker-dropdown-placement-topRight]="currentPositionY === 'top' && currentPositionX === 'end'"
           [class.qeydar-picker-dropdown-range]="isRange"
         >
-          <app-date-picker-popup
+          <qeydar-date-picker-popup
             [rtl]="rtl"
             [@slideMotion]="'enter'"
             [selectedDate]="selectedDate"
@@ -122,7 +118,7 @@ export type DatepickerMode = 'day' | 'month' | 'year';
             (clickInside)="focus()"
             tabindex="-1"
             [attr.disabled]="disabled? 'disabled':null"
-          ></app-date-picker-popup>
+          ></qeydar-date-picker-popup>
         </div>
       </ng-template>
       <ng-template
