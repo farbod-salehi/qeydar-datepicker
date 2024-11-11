@@ -1,5 +1,7 @@
 <div align="center">
-  <img src="https://img.shields.io/badge/Npm-v1.1.4-orange" alt="NPM Version" />
+  <a href="https://www.npmjs.com/package/@qeydar/datepicker" target="_blank">
+    <img src="https://img.shields.io/badge/Npm-v1.1.4-orange" alt="NPM Version" />
+  </a>
   <img src="https://img.shields.io/badge/Angular-%E2%89%A514.0.0-red" alt="Angular Version" />
 </div>
 
