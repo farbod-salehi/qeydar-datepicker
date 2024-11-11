@@ -5,7 +5,8 @@
             <ul>
                 <li (click)="showPart = 'datepicker'">Date picker</li>
                 <li (click)="showPart = 'timepicker'">Time Picker</li>
-                <li>About</li>
+                <li><a href="https://www.npmjs.com/package/@qeydar/datepicker" target="_blank">About ({{ Version }})</a></li>
+                <li><a href="https://github.com/Abbasr7/qeydar-datepicker" target="_blank">Github</a></li>
             </ul>
         </div>
     </div>
@@ -25,10 +26,7 @@
         </header>
         <div class="demo-part">
             <!-- Date Picker -->
-            <div
-                class="container"
-                *ngIf="showPart == 'datepicker'"
-            >
+            <div class="container" *ngIf="showPart == 'datepicker'">
                 <div class="box">
                     <h2>Set Settings:</h2>
                     <p>you can change date picker settings and see result.</p>
@@ -183,10 +181,7 @@
             </div>
 
             <!-- Time Picker -->
-            <div
-                class="container"
-                *ngIf="showPart == 'timepicker'"
-            >
+            <div class="container" *ngIf="showPart == 'timepicker'">
                 <div class="box">
                     <h2>Set Settings:</h2>
                     <p>you can change time picker settings and see result.</p>
@@ -241,6 +236,16 @@
                             <qeydar-time-picker [timeFormat]="timeFormat" [displayFormat]="timeDisplayFormat"
                                 [(ngModel)]="maxTime" (ngModelChange)="onChange($event)"></qeydar-time-picker>
                         </div>
+                        <div class="form-group">
+                            <label for="isInline">Inline mode:</label>
+                            <div class="switch-container">
+                                <input type="checkbox" (ngModelChange)="updateCode()" [(ngModel)]="isInline"
+                                    class="switch-checkbox" id="isInline" />
+                                <label class="switch-label" for="isInline">
+                                    <span class="switch-button"></span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="box" [dir]="rtl? 'rtl': 'ltr'">
@@ -249,7 +254,7 @@
                     <div class="demo">
                         <qeydar-time-picker [rtl]="rtl" [showIcon]="showIcon" [timeFormat]="timeFormat"
                             [displayFormat]="timeDisplayFormat" [valueType]="timeValueType" [minTime]="minTime"
-                            [maxTime]="maxTime" [(ngModel)]="selectedTime"
+                            [maxTime]="maxTime" [(ngModel)]="selectedTime" [inline]="isInline"
                             (ngModelChange)="onChange($event)"></qeydar-time-picker>
                         <code style="margin-top: 10px;display: block;">selectedDate:  {{ selectedTime | json }}</code>
                     </div>

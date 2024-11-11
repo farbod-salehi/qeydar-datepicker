@@ -1,3 +1,8 @@
+<div align="center">
+  <img src="https://img.shields.io/badge/Npm-v1.1.4-orange" alt="NPM Version" />
+  <img src="https://img.shields.io/badge/Angular-%E2%89%A514.0.0-red" alt="Angular Version" />
+</div>
+
 # Qeydar Date and Time Pickers
 
 A comprehensive package providing separate DatePicker and TimePicker components for Angular applications, with support for both Jalali (Persian) and Gregorian calendars.
@@ -8,7 +13,7 @@ This package supports Angular 14 and above. Specific version compatibility:
 | 1.x.x          | ≥14.0.0        |
 
 ## Demo
-You can see the online [Demo](https://qeydar-datepicker.vercel.app)
+You can see the online [Demo](https://datepicker.qydr.ir/)
 
 ## Components
 This package includes two main components:
@@ -38,7 +43,7 @@ This package includes two main components:
 ## Installation
 
 ```bash
-npm install @qeydar/datepicker
+npm install @angular/cdk@<COMPATIBLE_VERSION> @qeydar/datepicker
 ```
 
 ### Dependencies
@@ -234,6 +239,8 @@ export class AppComponent {
 | showIcon       | boolean            | true         | Show clock icon |
 | rtl            | boolean            | false        | Right-to-left mode |
 | lang           | Lang_Locale        | lang_En      | Language settings |
+| inline         | boolean            | false        | Show time picker inline (without popup) |
+| dateAdapter    | DateAdapter<Date>   | undefined    | Custom date adapter for time manipulation |
 
 ### TimePicker Outputs
 
@@ -276,7 +283,34 @@ export class AppComponent {
   constructor(private fb: FormBuilder) {}
 }
 ```
+#### Inline Mode
+```typescript
+<qeydar-time-picker
+  [(ngModel)]="time"
+  [inline]="true"
+  [timeFormat]="'24'"
+  [displayFormat]="'HH:mm:ss'"
+></qeydar-time-picker>
+```
 
+### Calendar Types and Localization
+The TimePicker automatically adapts to your chosen calendar system:
+
+```typescript
+// Jalali (Persian) Time Picker
+<qeydar-time-picker
+  [(ngModel)]="time"
+  [rtl]="true"
+  [timeFormat]="'12'"
+></qeydar-time-picker>
+
+// Gregorian Time Picker
+<qeydar-time-picker
+  [(ngModel)]="time"
+  [rtl]="false"
+  [timeFormat]="'24'"
+></qeydar-time-picker>
+```
 ### Template-driven Forms
 ```typescript
 <form #form="ngForm">
@@ -298,11 +332,21 @@ export class AppComponent {
 ## Styling
 Both components can be styled using CSS variables:
 ```css
-.qeydar-datepicker, .qeydar-time-picker {
+.qeydar-time-picker {
   --primary-color: #40a9ff;
   --border-color: #d9d9d9;
   --text-color: #666;
   --background-color: white;
+  --hover-background: #f5f5f5;
+  --selected-background: #e6f4ff;
+  --selected-text-color: #1890ff;
+  --disabled-color: #d9d9d9;
+}
+
+/* Inline mode specific styles */
+.time-picker-popup.inline {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
 }
 ```
 

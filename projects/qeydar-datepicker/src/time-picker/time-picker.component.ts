@@ -16,46 +16,60 @@ import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPai
 import { slideMotion } from '../utils/animation/slide';
 import { Lang_Locale } from '../utils/models';
 import { QeydarDatePickerService } from '../date-picker.service';
-import { DEFAULT_DATE_PICKER_POSITIONS } from '../public-api';
-import { TimeValueType } from '../utils/types';
+import { DateAdapter, DEFAULT_DATE_PICKER_POSITIONS, GregorianDateAdapter, JalaliDateAdapter } from '../public-api';
+import { TimeConfig, TimeFormat, TimeValueType } from '../utils/types';
 
 @Component({
   selector: 'qeydar-time-picker',
   template: `
     <div class="time-picker-wrapper" [formGroup]="form">
-      <div class="input-wrapper" [class.focus]="isOpen">
-        <input
-          #timePickerInput
-          type="text"
-          class="time-picker-input"
-          [class.focus]="isOpen"
-          formControlName="timeInput"
-          (focus)="onFocusInput()"
-          [placeholder]="placeholder || 'Select time'"
-        >
-        <button *ngIf="showIcon" class="time-button" (click)="toggleTimePicker($event)" tabindex="-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 6v6l4 2"/>
-          </svg>
-        </button>
-      </div>
+      <!-- Regular input mode -->
+      <ng-container *ngIf="!inline">
+        <div class="input-wrapper" [class.focus]="isOpen">
+          <input
+            #timePickerInput
+            type="text"
+            class="time-picker-input"
+            [class.focus]="isOpen"
+            formControlName="timeInput"
+            (focus)="onFocusInput()"
+            [placeholder]="placeholder || 'Select time'"
+          >
+          <button *ngIf="showIcon" class="time-button" (click)="toggleTimePicker($event)" tabindex="-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </button>
+        </div>
 
-      <ng-template
-        cdkConnectedOverlay
-        nzConnectedOverlay
-        [cdkConnectedOverlayOrigin]="origin"
-        [cdkConnectedOverlayOpen]="isOpen"
-        [cdkConnectedOverlayPositions]="overlayPositions"
-        [cdkConnectedOverlayTransformOriginOn]="'.time-picker-popup'"
-        [cdkConnectedOverlayHasBackdrop]="false"
-        (positionChange)="onPositionChange($event)"
-        (detach)="close()"
-      >
+        <ng-template
+          cdkConnectedOverlay
+          nzConnectedOverlay
+          [cdkConnectedOverlayOrigin]="origin"
+          [cdkConnectedOverlayOpen]="isOpen"
+          [cdkConnectedOverlayPositions]="overlayPositions"
+          [cdkConnectedOverlayTransformOriginOn]="'.time-picker-popup'"
+          [cdkConnectedOverlayHasBackdrop]="false"
+          (positionChange)="onPositionChange($event)"
+          (detach)="close()"
+        >
+          <ng-container *ngTemplateOutlet="timePickerContent"></ng-container>
+        </ng-template>
+      </ng-container>
+
+      <!-- Inline mode -->
+      <ng-container *ngIf="inline">
+        <ng-container *ngTemplateOutlet="timePickerContent"></ng-container>
+      </ng-container>
+
+      <!-- Time Picker Content Template -->
+      <ng-template #timePickerContent>
         <div 
           #popupWrapper 
           [class]="'time-picker-popup ' + cssClass"
           [@slideMotion]="'enter'" 
+          [class.inline]="inline"
           style="position: relative"
           (click)="$event.stopPropagation()"
         >
@@ -67,7 +81,7 @@ import { TimeValueType } from '../utils/types';
                   <button
                     *ngFor="let hour of hours"
                     [id]="'selector_h'+hour"
-                    [class.selected]="selectedHour === hour"
+                    [class.selected]="selectedTime.hour === hour"
                     [class.disabled]="isHourDisabled(hour)"
                     (click)="selectHour(hour)"
                     type="button"
@@ -85,7 +99,7 @@ import { TimeValueType } from '../utils/types';
                   <button
                     *ngFor="let minute of minutes"
                     [id]="'selector_m'+minute"
-                    [class.selected]="selectedMinute === minute"
+                    [class.selected]="selectedTime.minute === minute"
                     [class.disabled]="isMinuteDisabled(minute)"
                     (click)="selectMinute(minute)"
                     type="button"
@@ -103,7 +117,8 @@ import { TimeValueType } from '../utils/types';
                     <button
                       *ngFor="let second of seconds"
                       [id]="'selector_s'+second"
-                      [class.selected]="selectedSecond === second"
+                      [class.selected]="selectedTime.second === second"
+                      [class.disabled]="isSecondDisabled(second)"
                       (click)="selectSecond(second)"
                       type="button"
                     >
@@ -118,7 +133,7 @@ import { TimeValueType } from '../utils/types';
                 <div class="time-column period">
                   <button
                     *ngFor="let period of periods"
-                    [class.selected]="selectedPeriod === period"
+                    [class.selected]="selectedTime.period === period"
                     (click)="selectPeriod(period)"
                     type="button"
                   >
@@ -129,12 +144,11 @@ import { TimeValueType } from '../utils/types';
             </div>
           </div>
           
-          <div class="time-picker-footer">
+          <div class="time-picker-footer" *ngIf="!inline">
             <div class="footer-buttons">
               <button class="now-btn" (click)="selectNow()" type="button">{{ lang.now }}</button>
             </div>
             <div class="footer-actions">
-              <!-- <button class="cancel-btn" (click)="cancel()" type="button">{{ lang.cancel }}</button> -->
               <button class="save-btn" (click)="save()" type="button">{{ lang.ok }}</button>
             </div>
           </div>
@@ -142,188 +156,7 @@ import { TimeValueType } from '../utils/types';
       </ng-template>
     </div>
   `,
-  styles: [`
-    :host * {
-      font-family: inherit;
-      font-weight: 400;
-      box-sizing: border-box;
-      padding: 0;
-      margin: 0;
-    }
-    .time-picker-wrapper {
-      display: inline-block;
-    }
-
-    .input-wrapper {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      border: 1px solid #d9d9d9;
-      border-radius: 4px;
-    }
-
-    input:focus {
-      outline: none;
-    }
-
-    input.time-picker-input {
-      font-family: inherit;
-      width: 100%;
-      padding: 6px 30px 6px 10px;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      word-spacing: 7px;
-      transition: all 0.3s;
-    }
-
-    input:hover {
-      border-color: #40a9ff;
-    }
-
-    .input-wrapper.focus {
-      border-color: #40a9ff;
-      box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
-      outline: none;
-    }
-
-    .time-button {
-      background: none;
-      border: none;
-      padding: 4px 4px 0;
-      cursor: pointer;
-    }
-
-    .time-picker-popup {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08);
-      width: fit-content;
-      min-width: 200px;
-      overflow: hidden;
-    }
-
-    .time-picker-header {
-      padding: 16px;
-      font-size: 16px;
-      font-weight: 500;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .time-picker-content {
-      padding: 8px;
-    }
-
-    .time-columns {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 8px;
-      gap: 8px;
-    }
-
-    .time-column {
-      flex: 1;
-      height: 220px;
-      overflow-y: auto;
-      scrollbar-width: none;
-    }
-
-    .time-column::-webkit-scrollbar {
-      display: none;
-    }
-
-    .time-scroller {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .time-column button {
-      width: 100%;
-      padding: 8px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      color: #666;
-      font-size: 14px;
-      border-radius: 4px;
-    }
-
-    .time-column button:hover:not(.disabled) {
-      background: #f5f5f5;
-    }
-
-    .time-column button.selected {
-      background: #e6f4ff;
-      color: #1890ff;
-    }
-
-    .time-column button.disabled {
-      color: #d9d9d9;
-      cursor: not-allowed;
-    }
-
-    .time-separator {
-      padding: 8px 0;
-      color: #999;
-      font-weight: bold;
-    }
-
-    .time-picker-footer {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px;
-      border-top: 1px solid #f0f0f0;
-    }
-
-    button {
-      padding: 4px 15px;
-      border-radius: 4px;
-      border: 1px solid #d9d9d9;
-      background: white;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .save-btn {
-      background: #1890ff;
-      border-color: #1890ff;
-      color: white;
-    }
-
-    .save-btn:hover {
-      background: #40a9ff;
-      border-color: #40a9ff;
-    }
-
-    .cancel-btn:hover {
-      border-color: #40a9ff;
-      color: #40a9ff;
-    }
-
-    .footer-buttons {
-      display: flex;
-      gap: 8px;
-    }
-
-    .footer-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .now-btn {
-      color: #1890ff;
-      border-color: transparent;
-      background: transparent;
-      box-shadow: none;
-      padding-left: 0;
-    }
-
-    .now-btn:hover {
-      color: #40a9ff;
-    }
-  `],
+  styleUrls: ['./time-picker.component.scss'],
   providers: [
     QeydarDatePickerService,
     {
@@ -338,25 +171,24 @@ import { TimeValueType } from '../utils/types';
   animations: [slideMotion]
 })
 export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDestroy, OnChanges {
-  // #region Inputs & Outputs
-  @Input() placeholder?: string;
-  @Input() rtl: boolean = false;
+  @Input() placeholder?: string = 'Select time';
+  @Input() rtl = false;
   @Input() placement: 'left' | 'right' = 'right';
   @Input() minTime?: string;
   @Input() maxTime?: string;
-  @Input() lang: Lang_Locale;
+  @Input() lang!: Lang_Locale;
   @Input() valueType: TimeValueType = 'string';
-  @Input() cssClass: string = '';
+  @Input() cssClass = '';
   @Input() showIcon = true;
-
-  @Input() set timeFormat(value: '12' | '24') {
+  @Input() dateAdapter: DateAdapter<Date>;
+  @Input() inline = false;
+  @Input() set timeFormat(value: TimeFormat) {
     this._timeFormat = value;
     this.updateHourRange();
   }
-  get timeFormat(): '12' | '24' {
+  get timeFormat(): TimeFormat {
     return this._timeFormat;
   }
-
   @Input() set displayFormat(value: string) {
     this._displayFormat = value;
     this.showSeconds = value.toLowerCase().includes('s');
@@ -366,88 +198,101 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     return this._displayFormat;
   }
 
-  @Output() timeChange = new EventEmitter<any>();
+  @Output() timeChange = new EventEmitter<Date | string>();
   @Output() openChange = new EventEmitter<boolean>();
 
-  @ViewChild('timePickerInput') timePickerInput: ElementRef;
-  @ViewChild('popupWrapper') popupWrapper: ElementRef;
-  // #endregion
+  @ViewChild('timePickerInput') timePickerInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('popupWrapper') popupWrapper!: ElementRef<HTMLDivElement>;
 
-  // #region Component State
-  private _timeFormat: '12' | '24' = '12';
+  private _timeFormat: TimeFormat = '12';
   private _displayFormat = 'hh:mm a';
   private _value: string | Date | null = null;
-  
+  private onChange: (value: any) => void = () => {};
+  private onTouched: () => void = () => {};
+  private timeoutId: number | null = null;
+
   showSeconds = false;
   hours: number[] = [];
-  minutes: number[] = Array.from({length: 60}, (_, i) => i);
-  seconds: number[] = Array.from({length: 60}, (_, i) => i);
+  minutes: number[] = Array.from({ length: 60 }, (_, i) => i);
+  seconds: number[] = Array.from({ length: 60 }, (_, i) => i);
   periods: string[] = [];
-
-  selectedHour: number = 12;
-  selectedMinute: number = 0;
-  selectedSecond: number = 0;
-  selectedPeriod: string;
-
+  selectedTime: TimeConfig = {
+    hour: 12,
+    minute: 0,
+    second: 0,
+    period: ''
+  };
   isOpen = false;
   form: FormGroup;
   origin: CdkOverlayOrigin;
-  // #endregion
-
-  // #region Private Properties
-  private onChange: (value: any) => void = () => {};
-  private onTouched: () => void = () => {};
-  private documentClickListener: (event: MouseEvent) => void;
-  private timeoutId: any = null;
-
-  overlayPositions: ConnectionPositionPair[] = [...DEFAULT_DATE_PICKER_POSITIONS];
-  // #endregion
+  overlayPositions = [...DEFAULT_DATE_PICKER_POSITIONS];
 
   constructor(
     private fb: FormBuilder,
-    public elementRef: ElementRef,
-    public cdref: ChangeDetectorRef,
-    public datePickerService: QeydarDatePickerService
+    private elementRef: ElementRef,
+    private cdref: ChangeDetectorRef,
+    private datePickerService: QeydarDatePickerService,
+    private jalaliAdapter: JalaliDateAdapter,
+    private gregorianAdapter: GregorianDateAdapter,
   ) {
-    this.form = this.fb.group({
-      timeInput: ['']
-    });
-    this.documentClickListener = this.handleDocumentClick.bind(this);
-
-    this.lang = this.datePickerService.locale_en;
-    this.selectedPeriod = this.lang.am;
-    this.periods = [this.lang.am, this.lang.pm];
+    this.dateAdapter = this.gregorianAdapter;
+    this.initializeForm();
+    this.initializeLocale();
   }
 
-  // #region Lifecycle Hooks
+  // Lifecycle hooks
   ngOnInit(): void {
-    this.initializeComponent();
-  }
-
-  ngOnDestroy(): void {
-    this.cleanup();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['rtl'] || changes['lang']) {
-      this.lang = changes['lang']? this.lang: (this.rtl? this.datePickerService.locale_fa :this.datePickerService.locale_en);
-      this.selectedPeriod = this.lang.am;
-      this.periods = [this.lang.am, this.lang.pm];
-    }
-  }
-  // #endregion
-
-  // #region Component Initialization
-  private initializeComponent(): void {
     this.updateHourRange();
     this.origin = new CdkOverlayOrigin(this.elementRef);
     this.setupInputSubscription();
     this.value = new Date();
-    document.addEventListener('click', this.documentClickListener);
+
+    // Only add document click listener for non-inline mode
+    if (!this.inline) {
+      document.addEventListener('click', this.handleDocumentClick);
+    }
+
+    // Auto-open for inline mode
+    if (this.inline) {
+      this.isOpen = true;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.cleanupTimeouts();
+    document.removeEventListener('click', this.handleDocumentClick);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['rtl'] || changes['lang']) {
+      this.updateLocale();
+    }
+    if (changes['rtl'] && !changes['dateAdapter']) {
+      this.dateAdapter = this.rtl? this.jalaliAdapter: this.gregorianAdapter;
+    }
+  }
+
+  // Initialization methods
+  private initializeForm(): void {
+    this.form = this.fb.group({
+      timeInput: ['']
+    });
+  }
+
+  private initializeLocale(): void {
+    this.lang = this.datePickerService.locale_en;
+    this.selectedTime.period = this.lang.am;
+    this.periods = [this.lang.am, this.lang.pm];
+  }
+
+  private updateLocale(): void {
+    this.lang = this.rtl ? this.datePickerService.locale_fa : this.datePickerService.locale_en;
+    this.selectedTime.period = this.lang.am;
+    this.periods = [this.lang.am, this.lang.pm];
   }
 
   private setupInputSubscription(): void {
-    this.form.get('timeInput').valueChanges.subscribe(value => {
+    this.form.get('timeInput')?.valueChanges.subscribe(value => {
       if (!value) return;
 
       if (!this.isOpen) {
@@ -459,15 +304,64 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     });
   }
 
-  private cleanup(): void {
-    if (this.timeoutId !== null) {
-      clearTimeout(this.timeoutId);
-    }
-    document.removeEventListener('click', this.documentClickListener);
+  // Time management
+  private updateHourRange(): void {
+    this.hours = this.timeFormat === '12'
+    ? Array.from({ length: 12 }, (_, i) => i + 1)
+    : Array.from({ length: 24 }, (_, i) => i);
   }
-  // #endregion
 
-  // #region Value Accessors
+  private formatTime(date?: Date): string {
+    if (!date && !this.dateAdapter) return '';
+    
+    const currentDate = date || this.updateDateFromSelection();
+    return this.dateAdapter.format(currentDate, this._displayFormat);
+  }
+
+  private parseTimeString(value: string | Date): void {
+    if (!this.dateAdapter) return;
+
+    const date = value instanceof Date ? value : this.dateAdapter.parse(value, this._displayFormat);
+    if (!date) return;
+
+    const hours = this.dateAdapter.getHours(date);
+    const minutes = this.dateAdapter.getMinutes(date);
+    const seconds = this.dateAdapter.getSeconds(date);
+
+    if (hours === null || minutes === null || seconds === null) return;
+
+    this.selectedTime = {
+      hour: hours,
+      minute: minutes,
+      second: seconds,
+      period: hours >= 12 ? this.lang.pm : this.lang.am
+    };
+  }
+
+  // State management
+  private normalizeTime(date: Date): Date {
+    if (!this.dateAdapter) return date;
+
+    let normalizedDate = this.dateAdapter.clone(date);
+
+    if (this.minTime) {
+      const minDate = this.dateAdapter.parse(this.minTime, this._displayFormat);
+      if (minDate && this.dateAdapter.isBefore(normalizedDate, minDate)) {
+        normalizedDate = minDate;
+      }
+    }
+
+    if (this.maxTime) {
+      const maxDate = this.dateAdapter.parse(this.maxTime, this._displayFormat);
+      if (maxDate && this.dateAdapter.isAfter(normalizedDate, maxDate)) {
+        normalizedDate = maxDate;
+      }
+    }
+
+    return normalizedDate;
+  }
+
+  // Value accessors and form control
   get value(): Date | string | null {
     return this._value;
   }
@@ -475,330 +369,6 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   set value(val: Date | string | null) {
     this._value = val;
     this.updateFromValue(val);
-  }
-  // #endregion
-
-  // #region ControlValueAccessor Implementation
-  writeValue(value: Date | string | null): void {
-    if (value === null || value === undefined) {
-      this.value = null;
-      return;
-    }
-
-    if (value instanceof Date) {
-      this.value = value;
-    } else if (typeof value === 'string' && value.trim() !== '') {
-      const date = new Date(value);
-      this.value = !isNaN(date.getTime()) && this.valueType === 'date' ? 
-        date : value;
-      this.parseTimeString(value);
-    }
-    
-    this.updateTimeDisplay();
-    this.save(false);
-  }
-
-  registerOnChange(fn: any): void {
-    this.onChange = fn;
-  }
-
-  registerOnTouched(fn: any): void {
-    this.onTouched = fn;
-  }
-  // #endregion
-
-  // #region Time Management
-  private updateHourRange(): void {
-    this.hours = this.timeFormat === '12' 
-      ? Array.from({length: 12}, (_, i) => i + 1)
-      : Array.from({length: 24}, (_, i) => i);
-  }
-
-  private formatTime(date?: Date): string {
-    if (date) {
-      return this.formatDateToTimeString(date);
-    }
-    return this.formatSelectedTimeToString();
-  }
-
-  private formatDateToTimeString(date: Date): string {
-    let hours = date.getHours();
-    const minutes = date.getMinutes();
-    const seconds = date.getSeconds();
-    
-    if (this.timeFormat === '12') {
-      const period = hours >= 12 ? this.lang.pm : this.lang.am;
-      hours = hours % 12 || 12;
-      return this.buildTimeString(hours, minutes, seconds, period);
-    }
-    
-    return this.buildTimeString(hours, minutes, seconds);
-  }
-
-  private formatSelectedTimeToString(): string {
-    let hours = this.selectedHour;
-    if (this.timeFormat === '12') {
-      if (this.selectedPeriod === this.lang.pm && hours < 12) hours += 12;
-      if (this.selectedPeriod === this.lang.am && hours === 12) hours = 0;
-      hours = hours % 12 || 12;
-    }
-    
-    return this.buildTimeString(
-      hours, 
-      this.selectedMinute, 
-      this.selectedSecond, 
-      this.timeFormat === '12' ? this.selectedPeriod : null
-    );
-  }
-
-  private buildTimeString(hours: number, minutes: number, seconds: number, period?: string): string {
-    let timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    if (this.showSeconds) {
-      timeString += `:${seconds.toString().padStart(2, '0')}`;
-    }
-    if (period) {
-      timeString += ` ${period}`;
-    }
-    return timeString;
-  }
-
-  parseTimeString(value: string | Date): void {
-    if (value instanceof Date) {
-      this.updateFromDate(value);
-      return;
-    }
-
-    if (!value) return;
-
-    const hasSeconds = value.split(':').length > 2;
-    let [time, period] = value.split(' ');
-    let [hours, minutes, seconds] = time.split(':').map(Number);
-
-    if (this.timeFormat === '12') {
-      if (!period) {
-        period = hours >= 12 ? this.lang.pm : this.lang.am;
-        hours = hours % 12 || 12;
-      }
-    } else {
-      if (period) {
-        if (period.toUpperCase() === this.lang.pm && hours < 12) hours += 12;
-        if (period.toUpperCase() === this.lang.am && hours === 12) hours = 0;
-      }
-    }
-    
-    this.selectedHour = hours;
-    this.selectedMinute = minutes || 0;
-    this.selectedSecond = seconds || 0;
-    this.selectedPeriod = (this.timeFormat === '12') ? (period || this.lang.am) : null;
-  }
-
-  /**
-   * Validate and update time with normalization
-   */
-  validateAndUpdateTime(value: string): void {
-    if (!value) {
-      this.updateTimeDisplay();
-      return;
-    }
-
-    // Try to normalize the time format first
-    try {
-      let normalizedInput = value.trim();
-      
-      // Handle basic format corrections for 12-hour format
-      if (this.timeFormat === '12') {
-        const [time, period] = normalizedInput.split(' ');
-        if (time) {
-          let [hours, minutes] = time.split(':').map(Number);
-          
-          // Normalize hours and minutes to valid ranges
-          hours = isNaN(hours) ? 12 : Math.min(12, Math.max(1, hours));
-          minutes = isNaN(minutes) ? 0 : Math.min(59, Math.max(0, minutes));
-
-          // Determine period if not provided
-          let normalizedPeriod = period;
-          if (!period) {
-            // If no period provided, try to infer from original value
-            if (normalizedInput.toLowerCase().includes(this.lang.pm.toLowerCase()) || 
-                normalizedInput.toLowerCase().includes('pm')) {
-              normalizedPeriod = this.lang.pm;
-            } else {
-              normalizedPeriod = this.lang.am;
-            }
-          } else if (period.toUpperCase() === 'PM' || period.toUpperCase() === 'AM') {
-            normalizedPeriod = period.toUpperCase() === 'PM' ? this.lang.pm : this.lang.am;
-          }
-
-          normalizedInput = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${normalizedPeriod}`;
-        }
-      } else {
-        // 24-hour format normalization
-        const [hours, minutes] = normalizedInput.split(':').map(Number);
-        if (!isNaN(hours) && !isNaN(minutes)) {
-          normalizedInput = `${Math.min(23, Math.max(0, hours)).toString().padStart(2, '0')}:${Math.min(59, Math.max(0, minutes)).toString().padStart(2, '0')}`;
-        }
-      }
-
-      // Now normalize according to min/max constraints
-      const finalTime = this.normalizeTime(normalizedInput);
-      
-      this.form.get('timeInput').setValue(finalTime, { emitEvent: false });
-      this.parseTimeString(finalTime);
-      
-      const outputValue = this.valueType === 'date' 
-        ? this.updateDateFromSelection() 
-        : finalTime;
-      
-      this._value = outputValue;
-      this.onChange(outputValue);
-      this.timeChange.emit(outputValue);
-    } catch (error) {
-      console.error('Error normalizing time:', error);
-      this.updateTimeDisplay();
-    }
-  }
-
-  // #endregion
-
-  // #region UI Event Handlers
-  @HostListener('keydown', ['$event'])
-  handleKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Tab' || event.key === 'Enter') {
-      const currentValue = this.form.get('timeInput').value;
-      if (currentValue) {
-        this.validateAndUpdateTime(currentValue);
-      }
-      if (event.key === 'Tab') {
-        this.close();
-      }
-    } else if (event.key === 'Escape') {
-      this.close();
-    }
-  }
-
-  private handleDocumentClick(event: MouseEvent): void {
-    if (!this.elementRef.nativeElement.contains(event.target) && this.isOpen) {
-      this.close();
-      const currentValue = this.form.get('timeInput').value;
-      if (currentValue) {
-        this.validateAndUpdateTime(currentValue);
-      }
-    }
-  }
-
-  onFocusInput(): void {
-    if (!this.isOpen) {
-      this.open();
-    }
-  }
-
-  toggleTimePicker(event: Event): void {
-    event.stopPropagation();
-    if (this.isOpen) {
-      this.close();
-    } else {
-      this.open();
-    }
-  }
-  // #endregion
-
-  // #region Picker Operations
-  open(): void {
-    this.isOpen = true;
-    this.openChange.emit(true);
-    this.scrollToTime();
-  }
-
-  close(): void {
-    if (this.timeoutId !== null) {
-      clearTimeout(this.timeoutId);
-      this.timeoutId = null;
-    }
-
-    if (this.isOpen) {
-      this.isOpen = false;
-      this.openChange.emit(false);
-    }
-
-    this.cdref.detectChanges();
-  }
-
-  selectHour(hour: number): void {
-    if (!this.isHourDisabled(hour)) {
-      this.selectedHour = hour;
-      this.updateTimeDisplay();
-      this.scrollToSelectedItem('h'+hour);
-    }
-  }
-
-  selectMinute(minute: number): void {
-    if (!this.isMinuteDisabled(minute)) {
-      this.selectedMinute = minute;
-      this.updateTimeDisplay();
-      this.scrollToSelectedItem('m'+minute);
-    }
-  }
-
-  selectSecond(second: number): void {
-    this.selectedSecond = second;
-    this.updateTimeDisplay();
-    this.scrollToSelectedItem('s'+second);
-  }
-
-  selectPeriod(period: string): void {
-    this.selectedPeriod = period;
-    this.updateTimeDisplay();
-  }
-
-  selectNow(): void {
-    const now = new Date();
-    this.selectedHour = this.timeFormat === '12' ? now.getHours() % 12 || 12 : now.getHours();
-    this.selectedMinute = now.getMinutes();
-    this.selectedSecond = now.getSeconds();
-    this.selectedPeriod = now.getHours() >= 12 ? this.lang.pm : this.lang.am;
-    
-    this.updateTimeDisplay();
-    this.scrollToTime();
-    this.save();
-  }
-
-  save(close = true): void {
-    const outputValue = this.valueType === 'date' 
-      ? this.updateDateFromSelection() 
-      : this.formatTime();
-
-    if (!this.isTimeValid()) return;
-
-    this._value = outputValue;
-    this.form.get('timeInput').setValue(this.formatTime(), { emitEvent: false });
-    
-    this.onChange(outputValue);
-    this.timeChange.emit(outputValue);
-    
-    if (close) {
-      this.close();
-    }
-  }
-
-  cancel(): void {
-    this.close();
-  }
-  // #endregion
-
-  // #region Helper Methods
-  private updateFromDate(date: Date | null): void {
-    if (date && !isNaN(date.getTime())) {
-      let hours = date.getHours();
-      if (this.timeFormat === '12') {
-        this.selectedPeriod = hours >= 12 ? this.lang.pm : this.lang.am;
-        hours = hours % 12 || 12;
-      }
-      this.selectedHour = hours;
-      this.selectedMinute = date.getMinutes();
-      this.selectedSecond = date.getSeconds();
-    } else {
-      this.resetSelection();
-    }
   }
 
   private updateFromValue(value: Date | string | null): void {
@@ -814,203 +384,237 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     }
   }
 
-  private resetSelection(): void {
-    this.selectedHour = this.timeFormat === '12' ? 12 : 0;
-    this.selectedMinute = 0;
-    this.selectedSecond = 0;
-    this.selectedPeriod = this.lang.am;
-  }
+  private updateFromDate(date: Date | null): void {
+    if (date && !isNaN(date.getTime()) && this.dateAdapter) {
+      const hours = this.dateAdapter.getHours(date);
+      if (hours === null) return;
 
-  private updateTimeDisplay(): void {
-    if (this.form) {
-      this.form.get('timeInput').setValue(this.formatTime(), { emitEvent: false });
-    }
-  }
-
-  updateDateFromSelection(): Date {
-    let baseDate: Date;
-    
-    if (this._value instanceof Date) {
-      baseDate = new Date(this._value);
+      this.selectedTime = {
+        hour: hours,
+        minute: this.dateAdapter.getMinutes(date) ?? 0,
+        second: this.dateAdapter.getSeconds(date) ?? 0,
+        period: hours >= 12 ? this.lang.pm : this.lang.am
+      };
     } else {
-      baseDate = new Date();
-      baseDate.setHours(0, 0, 0, 0);
+      this.resetSelection();
+    }
+  }
+
+  private resetSelection(): void {
+    this.selectedTime = {
+      hour: 0,
+      minute: 0,
+      second: 0,
+      period: this.lang.am
+    };
+  }
+
+  writeValue(value: Date | string | null): void {
+    if (!value) {
+      this.value = null;
+      return;
+    }
+
+    if (value instanceof Date) {
+      this.value = value;
+    } else if (value.trim()) {
+      const date = new Date(value);
+      this.value = !isNaN(date.getTime()) && this.valueType === 'date' ? date : value;
+      this.parseTimeString(value);
     }
     
-    let hours = this.selectedHour;
-    if (this.timeFormat === '12') {
-      if (this.selectedPeriod === this.lang.pm && hours < 12) hours += 12;
-      if (this.selectedPeriod === this.lang.am && hours === 12) hours = 0;
+    this.updateTimeDisplay();
+    this.save(false);
+  }
+
+  registerOnChange(fn: any): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn;
+  }
+
+  // UI Event handlers
+  @HostListener('keydown', ['$event'])
+  handleKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Tab' || event.key === 'Enter') {
+      this.handleTimeInput();
+      if (event.key === 'Tab') this.close();
+    } else if (event.key === 'Escape') {
+      this.close();
     }
+  }
+
+  private handleTimeInput(): void {
+    const currentValue = this.form.get('timeInput')?.value;
+    if (currentValue) {
+      this.validateAndUpdateTime(currentValue);
+    }
+  }
+
+  private handleDocumentClick = (event: MouseEvent): void => {
+    if (!this.elementRef.nativeElement.contains(event.target) && this.isOpen) {
+      this.close();
+      this.handleTimeInput();
+    }
+  }
+
+  onFocusInput(): void {
+    if (!this.isOpen) {
+      this.open();
+    }
+  }
+
+  toggleTimePicker(event: Event): void {
+    event.stopPropagation();
+    this.isOpen ? this.close() : this.open();
+  }
+
+  // Picker operations
+  open(): void {
+    if (this.inline) return;
+
+    this.isOpen = true;
+    this.openChange.emit(true);
+    this.scrollToTime();
+  }
+
+  close(): void {
+    if (this.inline) return;
+
+    this.cleanupTimeouts();
+    if (this.isOpen) {
+      this.isOpen = false;
+      this.openChange.emit(false);
+      this.cdref.detectChanges();
+    }
+  }
+
+  // Selection methods
+  selectHour(hour: number): void {
+    if (!this.isHourDisabled(hour)) {
+      this.selectedTime.hour = hour;
+      this.updateTimeDisplay();
+      this.scrollToSelectedItem(`h${hour}`);
+      if (this.inline) this.save();
+    }
+  }
+
+  selectMinute(minute: number): void {
+    if (!this.isMinuteDisabled(minute)) {
+      this.selectedTime.minute = minute;
+      this.updateTimeDisplay();
+      this.scrollToSelectedItem(`m${minute}`);
+      if (this.inline) this.save();
+    }
+  }
+
+  selectSecond(second: number): void {
+    if (!this.isSecondDisabled(second)) {
+      this.selectedTime.second = second;
+      this.updateTimeDisplay();
+      this.scrollToSelectedItem(`s${second}`);
+      if (this.inline) this.save();
+    }
+  }
+
+  selectPeriod(period: string): void {
+    this.selectedTime.period = period;
+    this.updateTimeDisplay();
+  }
+
+  selectNow(): void {
+    const now = new Date();
+    this.selectedTime = {
+      hour: now.getHours(),
+      minute: now.getMinutes(),
+      second: now.getSeconds(),
+      period: now.getHours() >= 12 ? this.lang.pm : this.lang.am
+    };
     
-    baseDate.setHours(hours);
-    baseDate.setMinutes(this.selectedMinute);
-    baseDate.setSeconds(this.showSeconds ? this.selectedSecond : 0);
-    baseDate.setMilliseconds(0);
+    this.updateTimeDisplay();
+    this.scrollToTime();
+    this.save();
+  }
+
+  save(close = true): void {
+    const outputValue = this.valueType === 'date' 
+      ? this.updateDateFromSelection() 
+      : this.formatTime();
+
+    if (!this.isTimeValid()) return;
+
+    this._value = outputValue;
+    this.form.get('timeInput')?.setValue(this.formatTime(), { emitEvent: false });
     
-    return baseDate;
+    this.onChange(outputValue);
+    this.timeChange.emit(outputValue);
+    
+    if (close && !this.inline) {
+      this.close();
+    }
   }
 
-  /**
-   * Convert time string to minutes for easier comparison, handling both 12/24 formats
-   */
-  private timeToMinutes(timeStr: string): number {
-    const [time, period] = timeStr.trim().split(' ');
-    let [hours, minutes] = time.split(':').map(Number);
+  // Validation methods
+  private validateAndUpdateTime(value: string): void {
+    if (!value || !this.dateAdapter) {
+      this.updateTimeDisplay();
+      return;
+    }
 
-    // Handle 12-hour format conversion
-    if (this.timeFormat === '12') {
-      if (!period) {
-        // If no period provided, assume AM for 12 and PM for others
-        if (hours === 12) hours = 0;
-      } else {
-        const isPM = period.toUpperCase() === this.lang.pm.toUpperCase() || period.toUpperCase() === 'PM';
-        if (isPM && hours < 12) hours += 12;
-        else if (!isPM && hours === 12) hours = 0;
+    try {
+      const parsedDate = this.dateAdapter.parse(value, this._displayFormat);
+      if (!parsedDate) {
+        this.updateTimeDisplay();
+        return;
       }
-    }
 
-    return hours * 60 + minutes;
+      const normalizedDate = this.normalizeTime(parsedDate);
+      const formattedTime = this.dateAdapter.format(normalizedDate, this._displayFormat);
+      
+      this.form.get('timeInput')?.setValue(formattedTime, { emitEvent: false });
+      this.parseTimeString(normalizedDate);
+
+      const outputValue = this.valueType === 'date' ? normalizedDate : formattedTime;
+      this._value = outputValue;
+      this.onChange(outputValue);
+      this.timeChange.emit(outputValue);
+
+    } catch (error) {
+      console.error('Error normalizing time:', error);
+      this.updateTimeDisplay();
+    }
   }
 
-  /**
-   * Convert minutes back to time string
-   */
-  private minutesToTime(totalMinutes: number): string {
-    let hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    if (this.timeFormat === '12') {
-      const period = hours >= 12 ? this.lang.pm : this.lang.am;
-      hours = hours % 12 || 12;
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
-    }
-
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  }
-
-  /**
-   * Normalize time to nearest valid time based on min/max constraints
-   */
-  private normalizeTime(value: string): string {
-    // First, ensure the time string has proper period for 12-hour format
-    if (this.timeFormat === '12' && !value.includes(' ')) {
-      const minutes = this.timeToMinutes(value);
-      const hours = Math.floor(minutes / 60);
-      value += ` ${hours >= 12 ? this.lang.pm : this.lang.am}`;
-    }
-
-    const minutes = this.timeToMinutes(value);
-    let normalizedMinutes = minutes;
-
-    if (this.minTime) {
-      const minMinutes = this.timeToMinutes(this.minTime);
-      if (minutes < minMinutes) {
-        normalizedMinutes = minMinutes;
-      }
-    }
-
-    if (this.maxTime) {
-      const maxMinutes = this.timeToMinutes(this.maxTime);
-      if (minutes > maxMinutes) {
-        normalizedMinutes = maxMinutes;
-      }
-    }
-
-    return this.minutesToTime(normalizedMinutes);
-  }
-
-  /**
-   * Checks if a specific hour is disabled based on min/max time constraints
-   * Only considers the hour bounds, ignoring minutes
-   */
   isHourDisabled(hour: number): boolean {
-    if (!this.minTime && !this.maxTime) return false;
-
-    // Convert hour to 24-hour format for comparison
-    let testHour = hour;
-    if (this.timeFormat === '12') {
-      if (this.selectedPeriod === this.lang.pm && hour < 12) testHour += 12;
-      if (this.selectedPeriod === this.lang.am && hour === 12) testHour = 0;
-    }
-
-    if (this.minTime) {
-      const [minHour] = this.minTime.split(':').map(Number);
-      let minTestHour = minHour;
-      if (this.timeFormat === '12') {
-        if (this.minTime.toLowerCase().includes(this.lang.pm.toLowerCase()) && minHour < 12) {
-          minTestHour += 12;
-        } else if (this.minTime.toLowerCase().includes(this.lang.am.toLowerCase()) && minHour === 12) {
-          minTestHour = 0;
-        }
-      }
-      if (testHour < minTestHour) return true;
-    }
-
-    if (this.maxTime) {
-      const [maxHour] = this.maxTime.split(':').map(Number);
-      let maxTestHour = maxHour;
-      if (this.timeFormat === '12') {
-        if (this.maxTime.toLowerCase().includes(this.lang.pm.toLowerCase()) && maxHour < 12) {
-          maxTestHour += 12;
-        } else if (this.maxTime.toLowerCase().includes(this.lang.am.toLowerCase()) && maxHour === 12) {
-          maxTestHour = 0;
-        }
-      }
-      if (testHour > maxTestHour) return true;
-    }
-
-    return false;
+    if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return false;
+    return this.isTimeDisabled(this.createDateWithTime({ ...this.selectedTime, hour }));
   }
 
-  /**
-   * Checks if a specific minute is disabled based on min/max time constraints
-   */
   isMinuteDisabled(minute: number): boolean {
-    if (!this.minTime && !this.maxTime) return false;
+    if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return false;
+    return this.isTimeDisabled(this.createDateWithTime({ ...this.selectedTime, minute }));
+  }
 
-    // Create a time string for the current hour and this minute
-    let testHour = this.selectedHour;
-    if (this.timeFormat === '12') {
-      if (this.selectedPeriod === this.lang.pm && testHour < 12) testHour += 12;
-      if (this.selectedPeriod === this.lang.am && testHour === 12) testHour = 0;
-    }
+  isSecondDisabled(second: number): boolean {
+    if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return false;
+    return this.isTimeDisabled(this.createDateWithTime({ ...this.selectedTime, second }));
+  }
 
-    const testTime = `${testHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-    const testMinutes = this.timeToMinutes(testTime);
+  private isTimeDisabled(testDate: Date): boolean {
+    if (!this.dateAdapter) return false;
 
     if (this.minTime) {
-      const [minHour, minMinute] = this.minTime.split(':').map(Number);
-      let minTestHour = minHour;
-      
-      if (this.timeFormat === '12') {
-        if (this.minTime.toLowerCase().includes(this.lang.pm.toLowerCase()) && minHour < 12) {
-          minTestHour += 12;
-        } else if (this.minTime.toLowerCase().includes(this.lang.am.toLowerCase()) && minHour === 12) {
-          minTestHour = 0;
-        }
-      }
-
-      // Only check minutes if we're in the minimum hour
-      if (testHour === minTestHour && minute < minMinute) {
+      const minDate = this.dateAdapter.parse(this.minTime, this._displayFormat);
+      if (minDate && this.dateAdapter.isBefore(testDate, minDate)) {
         return true;
       }
     }
 
     if (this.maxTime) {
-      const [maxHour, maxMinute] = this.maxTime.split(':').map(Number);
-      let maxTestHour = maxHour;
-      
-      if (this.timeFormat === '12') {
-        if (this.maxTime.toLowerCase().includes(this.lang.pm.toLowerCase()) && maxHour < 12) {
-          maxTestHour += 12;
-        } else if (this.maxTime.toLowerCase().includes(this.lang.am.toLowerCase()) && maxHour === 12) {
-          maxTestHour = 0;
-        }
-      }
-
-      // Only check minutes if we're in the maximum hour
-      if (testHour === maxTestHour && minute > maxMinute) {
+      const maxDate = this.dateAdapter.parse(this.maxTime, this._displayFormat);
+      if (maxDate && this.dateAdapter.isAfter(testDate, maxDate)) {
         return true;
       }
     }
@@ -1018,58 +622,101 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     return false;
   }
 
-  /**
-   * Checks if the current time selection is valid
-   */
   private isTimeValid(): boolean {
-    if (!this.minTime && !this.maxTime) return true;
+    if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return true;
 
-    const currentTime = this.formatTime();
-    const currentMinutes = this.timeToMinutes(currentTime);
-
-    if (this.minTime && currentMinutes < this.timeToMinutes(this.minTime)) {
-      return false;
+    const currentDate = this.updateDateFromSelection();
+    if (this.minTime) {
+      const minDate = this.dateAdapter.parse(this.minTime, this._displayFormat);
+      if (minDate && this.dateAdapter.isBefore(currentDate, minDate)) {
+        return false;
+      }
     }
 
-    if (this.maxTime && currentMinutes > this.timeToMinutes(this.maxTime)) {
-      return false;
+    if (this.maxTime) {
+      const maxDate = this.dateAdapter.parse(this.maxTime, this._displayFormat);
+      if (maxDate && this.dateAdapter.isAfter(currentDate, maxDate)) {
+        return false;
+      }
     }
 
     return true;
   }
 
-  // #region Scroll Management
-  async scrollToTime(): Promise<void> {
-    if (this.selectedHour) {
-      await this.scrollToSelectedItem('h'+this.selectedHour, 'auto');
+  // Helper methods
+  private createDateWithTime(config: TimeConfig): Date {
+    if (!this.dateAdapter) return new Date();
+
+    let testHour = config.hour;
+    if (this.timeFormat === '12') {
+      if (config.period === this.lang.pm && testHour < 12) testHour += 12;
+      if (config.period === this.lang.am && testHour === 12) testHour = 0;
     }
 
-    if (this.selectedMinute) {
-      await this.scrollToSelectedItem('m'+this.selectedMinute, 'auto');
+    let date = new Date();
+    date = this.dateAdapter.setHours(date, testHour);
+    date = this.dateAdapter.setMinutes(date, config.minute);
+    date = this.dateAdapter.setSeconds(date, config.second);
+    return date;
+  }
+
+  private updateDateFromSelection(): Date {
+    if (!this.dateAdapter) return new Date();
+
+    let hours = this.selectedTime.hour;
+    if (this.timeFormat === '12') {
+      if (this.selectedTime.period === this.lang.pm && hours < 12) hours += 12;
+      if (this.selectedTime.period === this.lang.am && hours === 12) hours = 0;
     }
 
-    if (this.selectedSecond && this.showSeconds) {
-      await this.scrollToSelectedItem('s'+this.selectedSecond);
+    let date = this._value instanceof Date ? 
+      this.dateAdapter.clone(this._value) : 
+      new Date();
+
+    date = this.dateAdapter.setHours(date, hours);
+    date = this.dateAdapter.setMinutes(date, this.selectedTime.minute);
+    date = this.dateAdapter.setSeconds(date, this.selectedTime.second);
+    
+    return date;
+  }
+
+  private updateTimeDisplay(): void {
+    if (this.form) {
+      this.form.get('timeInput')?.setValue(this.formatTime(), { emitEvent: false });
     }
   }
 
-  scrollToSelectedItem(id: string, behavior: 'smooth'|'auto' = 'smooth', timeout = 0): Promise<boolean> {
-    clearTimeout(this.timeoutId);
+  // UI Update methods
+  private async scrollToTime(){
+    await this.scrollToSelectedItem(`h${this.selectedTime.hour}`, 'auto'),
+    await this.scrollToSelectedItem(`m${this.selectedTime.minute}`, 'auto'),
+    this.showSeconds ? await this.scrollToSelectedItem(`s${this.selectedTime.second}`, 'auto') : '';
+  }
+
+  private scrollToSelectedItem(id: string, behavior: ScrollBehavior = 'smooth'): Promise<boolean> {
+    this.cleanupTimeouts();
     return new Promise((resolve) => {
-      if (id) {
-        this.timeoutId = setTimeout(() => {
-          const selectedElement = this.popupWrapper?.nativeElement.querySelector(`#selector_${id}`);
-          if (selectedElement) {
-            selectedElement.scrollIntoView({ behavior, block: 'center' });
-          }
-          resolve(true);
-        }, timeout);
-      } else {
+      if (!id) {
         resolve(false);
+        return;
       }
+
+      this.timeoutId = window.setTimeout(() => {
+        const selectedElement = this.popupWrapper?.nativeElement.querySelector(`#selector_${id}`);
+        if (selectedElement) {
+          selectedElement.scrollIntoView({ behavior, block: 'center' });
+        }
+        resolve(true);
+      }, 0);
     });
   }
-  // #endregion
+
+  private cleanupTimeouts(): void {
+    if (this.timeoutId !== null) {
+      window.clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+    }
+  }
 
   onPositionChange(position: ConnectedOverlayPositionChange): void {
     this.cdref.detectChanges();

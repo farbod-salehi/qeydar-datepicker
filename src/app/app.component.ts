@@ -27,12 +27,13 @@ import { CalendarType, DatepickerMode, RangeInputLabels, TimeValueType } from 'p
   ]
 })
 export class AppComponent implements OnInit{
+  Version = '1.1.4';
   isSidebarOpen = true;
   showPart = 'datepicker';
 
   // models
   selectedDate: any = '1403/02/11';
-  selectedTime: any = '17:17';
+  selectedTime: any = new Date();
   
   // setting
   rtl: boolean = true;
@@ -164,6 +165,7 @@ export class AppComponent implements OnInit{
         timeDisplayFormat: string = ${this.timeDisplayFormat};
         maxTime: string = ${this.maxTime};
         minTime: string = ${this.minTime};
+        isInline: boolean = ${this.isInline};
     `;
 
     this.demoCode = `
@@ -178,6 +180,7 @@ export class AppComponent implements OnInit{
             [valueType]="timeValueType"
             [minTime]="minTime"
             [maxTime]="maxTime"
+            [inline]="isInline"
             [(ngModel)]="selectedTime"
             (ngModelChange)="onChange($event)"
           ></qeydar-time-picker>
@@ -188,7 +191,7 @@ export class AppComponent implements OnInit{
       export class AppComponent{
 
         // Can accept both Date object and string
-        selectedTime: Date | string = '17:17';
+        selectedTime: Date | string = ${this.selectedTime};
 
         // setting
         ${settings}

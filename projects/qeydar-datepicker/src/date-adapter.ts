@@ -74,6 +74,12 @@ export interface DateAdapter<D> {
   max(dates: D[]): D;
   setYear(date: D, year: number): D;
   startOfDay (date: D): D;
+  getHours(date: D): number|null;
+  getMinutes(date: D): number|null;
+  getSeconds(date: D): number|null;
+  setHours(date: D, hours: number): D;
+  setMinutes(date: D, minutes: number): D;
+  setSeconds(date: D, seconds: number): D;
 }
 
 @Injectable({
@@ -253,6 +259,36 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
   startOfDay(date: Date): Date {
     return startOfDay(date);
   }
+
+  getHours(date: Date): number|null {
+    return date? parseInt(formatJalali(date, 'HH')): null;
+  }
+
+  getMinutes(date: Date): number|null {
+    return date? parseInt(formatJalali(date, 'mm')): null;
+  }
+
+  getSeconds(date: Date): number|null {
+    return date? parseInt(formatJalali(date, 'ss')): null;
+  }
+
+  setHours(date: Date, hours: number): Date {
+    const newDate = this.clone(date);
+    newDate.setHours(hours);
+    return newDate;
+  }
+
+  setMinutes(date: Date, minutes: number): Date {
+    const newDate = this.clone(date);
+    newDate.setMinutes(minutes);
+    return newDate;
+  }
+
+  setSeconds(date: Date, seconds: number): Date {
+    const newDate = this.clone(date);
+    newDate.setSeconds(seconds);
+    return newDate;
+  }
 }
 
 @Injectable({
@@ -427,5 +463,35 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
 
   startOfDay(date: Date): Date {
     return startOfDay(date);
+  }
+
+  getHours(date: Date): number|null {
+    return date? date.getHours(): null;
+  }
+
+  getMinutes(date: Date): number|null {
+    return date? date.getMinutes(): null;
+  }
+
+  getSeconds(date: Date): number|null {
+    return date? date.getSeconds(): null;
+  }
+
+  setHours(date: Date, hours: number): Date {
+    const newDate = this.clone(date);
+    newDate.setHours(hours);
+    return newDate;
+  }
+
+  setMinutes(date: Date, minutes: number): Date {
+    const newDate = this.clone(date);
+    newDate.setMinutes(minutes);
+    return newDate;
+  }
+
+  setSeconds(date: Date, seconds: number): Date {
+    const newDate = this.clone(date);
+    newDate.setSeconds(seconds);
+    return newDate;
   }
 }
