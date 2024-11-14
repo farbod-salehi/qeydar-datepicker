@@ -9,7 +9,7 @@ import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './publi
 import { DOCUMENT } from '@angular/common';
 import { DestroyService, QeydarDatePickerService } from './date-picker.service';
 import { fromEvent, takeUntil } from 'rxjs';
-import { CalendarType, DatepickerMode, Placement, RangePartType } from './utils/types';
+import { CalendarType, DatepickerMode, Placement, RangePartType, ValueFormat } from './utils/types';
 
 @Component({
   selector: 'qeydar-date-picker',
@@ -271,8 +271,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() disabled = false;
   @Input() isInline = false;
   @Input() showSidebar = true;
-  @Input() emitInDateFormat = false;
   @Input() showToday = false;
+  @Input() valueFormat: ValueFormat = 'gregorian';
   @Input() set minDate(date: Date | string | null) {
     if (date) {
       this._minDate = date;
@@ -441,6 +441,9 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (changes['isRange'] && this.isRange ==  false) {
       this.origin = new CdkOverlayOrigin(this.elementRef);
     }
+    if (changes['valueFormat']) {
+      this.emitValueIfChanged();
+    }
   }
 
   handleDocumentClick(event: MouseEvent): void {
@@ -499,12 +502,12 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (this.isRange) {
       if (this.selectedStartDate && this.selectedEndDate) {
         return {
-          start: this.emitInDateFormat ? this.selectedStartDate : this.dateAdapter.format(this.selectedStartDate, this.format),
-          end: this.emitInDateFormat ? this.selectedEndDate : this.dateAdapter.format(this.selectedEndDate, this.format)
+          start: this.convertDateToFormat(this.selectedStartDate, this.calendarType),
+          end: this.convertDateToFormat(this.selectedEndDate, this.calendarType)
         };
       }
     } else if (this.selectedDate) {
-      return this.emitInDateFormat ? this.selectedDate : this.dateAdapter.format(this.selectedDate, this.format);
+      return this.convertDateToFormat(this.selectedDate, this.calendarType);
     }
     return null;
   }
@@ -818,51 +821,64 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     }
   }
 
+  convertDateToFormat(date: Date, fromType: CalendarType): any {
+    if (!date) return null;
+
+    switch (this.valueFormat) {
+      case 'date':
+        return date;
+      case 'jalali':
+        return this.jalali.format(date, this.format);
+      case 'gregorian':
+        return this.gregorian.format(date, this.format);
+      default:
+        return this.dateAdapter.format(date, this.format);
+    }
+  }
+
   // ========== ControlValueAccessor Implementation ==========
   onChange: any = () => {};
   onTouch: any = () => {};
 
   writeValue(value: any): void {
     if (value) {
-      this.handleWriteValue(value);
+      this.isInternalChange = true;
+      
+      if (this.isRange && typeof value === 'object') {
+        const startDate = this.parseIncomingValue(value.start);
+        const endDate = this.parseIncomingValue(value.end);
+        
+        if (startDate) {
+          this.selectedStartDate = startDate;
+          this.form.get('startDateInput')?.setValue(
+            this.dateAdapter.format(startDate, this.format),
+            { emitEvent: false }
+          );
+        }
+        
+        if (endDate) {
+          this.selectedEndDate = endDate;
+          this.form.get('endDateInput')?.setValue(
+            this.dateAdapter.format(endDate, this.format),
+            { emitEvent: false }
+          );
+        }
+      } else {
+        const parsedDate = this.parseIncomingValue(value);
+        if (parsedDate) {
+          this.selectedDate = parsedDate;
+          this.form.get('dateInput')?.setValue(
+            this.dateAdapter.format(parsedDate, this.format),
+            { emitEvent: false }
+          );
+        }
+      }
+      
+      this.lastEmittedValue = value;
+      this.isInternalChange = false;
+      this.updateDatePickerPopup();
     } else {
       this.resetValues();
-    }
-  }
-
-  handleWriteValue(value: any): void {
-    this.isInternalChange = true;
-    if (this.isRange && typeof value === 'object') {
-      this.handleRangeWriteValue(value);
-    } else if (!this.isRange) {
-      this.handleSingleWriteValue(value);
-    }
-    this.lastEmittedValue = value;
-    this.isInternalChange = false;
-    this.updateDatePickerPopup();
-  }
-
-  handleRangeWriteValue(value: any): void {
-    this.selectedStartDate = this.parseDateValue(value.start);
-    this.selectedEndDate = this.parseDateValue(value.end);
-    this.form.get('startDateInput')?.setValue(
-      this.dateAdapter.format(this.selectedStartDate, this.format),
-      { emitEvent: false }
-    );
-    this.form.get('endDateInput')?.setValue(
-      this.dateAdapter.format(this.selectedEndDate, this.format),
-      { emitEvent: false }
-    );
-  }
-
-  handleSingleWriteValue(value: any): void {
-    const parsedDate = this.dateAdapter.parse(value, this.format);
-    if (parsedDate) {
-      this.selectedDate = this.clampDate(parsedDate);
-      this.form.get('dateInput')?.setValue(
-        this.dateAdapter.format(this.selectedDate, this.format),
-        { emitEvent: false }
-      );
     }
   }
 
@@ -918,6 +934,32 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       return value;
     }
     return this.dateAdapter.parse(value, this.format);
+  }
+
+  parseValueFromFormat(value: string | Date, targetAdapter: DateAdapter<Date>): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+
+    return targetAdapter.parse(value, this.format);
+  }
+
+  parseIncomingValue(value: any): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+
+    // Try parsing with both adapters
+    let parsedDate: Date | null = null;
+
+    // First try with the calendar type's adapter
+    // parsedDate = this.dateAdapter.parse(value, this.format);
+    // if (parsedDate) return parsedDate;
+
+    // Then try with the alternate adapter
+    const alternateAdapter = this.valueFormat === 'jalali' ? this.jalali: this.gregorian;
+    parsedDate = alternateAdapter.parse(value, this.format);
+    if (parsedDate) return parsedDate;
+
+    return null;
   }
 
   // ========== Time Methods ==========

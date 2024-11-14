@@ -12,3 +12,4 @@ export interface TimeConfig {
 
 export type TimeFormat = '12' | '24';
 export type ScrollBehavior = 'smooth' | 'auto';
+export type ValueFormat = 'jalali' | 'gregorian' | 'date';

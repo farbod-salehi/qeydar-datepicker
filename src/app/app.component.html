@@ -33,7 +33,7 @@
                     <div class="filters">
                         <div class="form-group">
                             <label for="cal-type">Calendar type:</label>
-                            <select name="cal-type" id="cal-type" (change)="onChangeCalendarType($event)">
+                            <select name="cal-type" id="cal-type" [(ngModel)]="calendarType" (change)="onChangeCalendarType($event)">
                                 <option value="jalali">jalali</option>
                                 <option value="gregorian">gregorian</option>
                             </select>
@@ -44,6 +44,14 @@
                                 <option value="day">day</option>
                                 <option value="month">month</option>
                                 <option value="year">year</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="valueFormat">Value format:</label>
+                            <select name="valueFormat" id="valueFormat" [(ngModel)]="valueFormat" (change)="updateCode()">
+                                <option value="jalali">jalali</option>
+                                <option value="gregorian">gregorian</option>
+                                <option value="date">date</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -127,16 +135,6 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="EmitInDateFormat">Emit in Date format:</label>
-                                <div class="switch-container">
-                                    <input type="checkbox" [(ngModel)]="emitInDateFormat" (change)="updateCode()"
-                                        class="switch-checkbox" id="EmitInDateFormat" />
-                                    <label class="switch-label" for="EmitInDateFormat">
-                                        <span class="switch-button"></span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="form-group">
                                 <label for="showToday">Show today:</label>
                                 <div class="switch-container">
                                     <input type="checkbox" [(ngModel)]="showToday" (change)="updateCode()"
@@ -163,12 +161,26 @@
                     <h2>Settings Result</h2>
                     <p>Display the demo based on the settings</p>
                     <div class="demo">
-                        <qeydar-date-picker [rtl]="rtl" [calendarType]="calendarType" [format]="format"
-                            [footerDescription]="footerDescription" [inputLabel]="inputLabel"
-                            [rangeInputLabels]="rangeInputLabel" [showSidebar]="showSidebar" [disabled]="disabled"
-                            [emitInDateFormat]="emitInDateFormat" [isRange]="isRange" [showToday]="showToday"
-                            [maxDate]="maxDate" [minDate]="minDate" [mode]="mode" [isInline]="isInline"
-                            [(ngModel)]="selectedDate" (ngModelChange)="onChange($event)"></qeydar-date-picker>
+                        <qeydar-date-picker
+                            [rtl]="rtl"
+                            [calendarType]="calendarType"
+                            [format]="format"
+                            [footerDescription]="footerDescription"
+                            [inputLabel]="inputLabel"
+                            [rangeInputLabels]="rangeInputLabel"
+                            [showSidebar]="showSidebar"
+                            [disabled]="disabled"
+                            [valueFormat]="valueFormat"
+                            [isRange]="isRange"
+                            [showToday]="showToday"
+                            [maxDate]="maxDate"
+                            [minDate]="minDate"
+                            [mode]="mode"
+                            [isInline]="isInline"
+                            [(ngModel)]="selectedDate"
+                            (ngModelChange)="onChange($event)"
+                        >
+                        </qeydar-date-picker>
                         <code style="margin-top: 10px;display: block;">selectedDate:  {{ selectedDate | json }}</code>
                     </div>
                     <button class="toggle-btn" (click)="toggleCode(code)">show code</button>

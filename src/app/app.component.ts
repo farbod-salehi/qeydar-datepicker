@@ -1,7 +1,7 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { CalendarType, DatepickerMode, RangeInputLabels, TimeValueType } from 'projects/qeydar-datepicker/src/public-api';
+import { CalendarType, DatepickerMode, RangeInputLabels, TimeValueType, ValueFormat } from 'projects/qeydar-datepicker/src/public-api';
 
 @Component({
   selector: 'app-root',
@@ -27,7 +27,7 @@ import { CalendarType, DatepickerMode, RangeInputLabels, TimeValueType } from 'p
   ]
 })
 export class AppComponent implements OnInit{
-  Version = '1.1.4';
+  Version = '1.1.5';
   isSidebarOpen = true;
   showPart = 'datepicker';
 
@@ -46,7 +46,7 @@ export class AppComponent implements OnInit{
   rangeInputLabel: RangeInputLabels = {start: '', end: ''};
   disabled: boolean = false;
   showSidebar: boolean = false;
-  emitInDateFormat: boolean = false;
+  valueFormat: ValueFormat = 'jalali';
   showToday: boolean = false;
   isInline: boolean = false;
   maxDate: Date | string;
@@ -110,7 +110,7 @@ export class AppComponent implements OnInit{
         rangeInputLabel: RangeInputLabels = ${this.rangeInputLabel};
         disabled: boolean = ${this.disabled};
         showSidebar: boolean = ${this.showSidebar};
-        emitInDateFormat: boolean = ${this.emitInDateFormat};
+        valueFormat: ValueFormat = ${this.valueFormat};
         showToday: boolean = ${this.showToday};
         isInline: boolean = ${this.isInline};
         minDate: Date | string = ${this.minDate};
