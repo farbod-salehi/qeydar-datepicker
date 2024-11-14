@@ -10,14 +10,15 @@
  * - Min/Max time validation
  * - Custom styling
  */
-import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, AfterViewInit, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup } from '@angular/forms';
-import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair } from '@angular/cdk/overlay';
+import { CdkOverlayOrigin, ConnectedOverlayPositionChange } from '@angular/cdk/overlay';
 import { slideMotion } from '../utils/animation/slide';
 import { Lang_Locale } from '../utils/models';
 import { QeydarDatePickerService } from '../date-picker.service';
-import { DateAdapter, DEFAULT_DATE_PICKER_POSITIONS, GregorianDateAdapter, JalaliDateAdapter } from '../public-api';
+import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { TimeConfig, TimeFormat, TimeValueType } from '../utils/types';
+import { DEFAULT_DATE_PICKER_POSITIONS } from "../utils/overlay/overlay"
 
 @Component({
   selector: 'qeydar-time-picker',

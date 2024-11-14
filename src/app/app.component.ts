@@ -53,7 +53,6 @@ export class AppComponent implements OnInit{
   minDate: Date | string;
   showIcon: boolean = true;
   timeValueType: TimeValueType = 'string';
-  timeFormat: '12' | '24' = '24';
   timeDisplayFormat: string = 'HH:mm';
   maxTime: string;
   minTime: string;
@@ -130,7 +129,7 @@ export class AppComponent implements OnInit{
             [rangeInputLabels]="rangeInputLabel"
             [showSidebar]="showSidebar"
             [disabled]="disabled"
-            [emitInDateFormat]="emitInDateFormat"
+            [valueFormat]="valueFormat"
             [isRange]="isRange"
             [showToday]="showToday"
             [maxDate]="maxDate"
@@ -161,7 +160,6 @@ export class AppComponent implements OnInit{
     let settings = `rtl: boolean = ${this.rtl};
         showIcon: boolean = ${this.showIcon};
         timeValueType: TimeValueType = ${this.timeValueType};
-        timeFormat: '12' | '24' = ${this.timeFormat};
         timeDisplayFormat: string = ${this.timeDisplayFormat};
         maxTime: string = ${this.maxTime};
         minTime: string = ${this.minTime};
@@ -175,7 +173,6 @@ export class AppComponent implements OnInit{
           <qeydar-time-picker
             [rtl]="rtl"
             [showIcon]="showIcon"
-            [timeFormat]="timeFormat"
             [displayFormat]="timeDisplayFormat"
             [valueType]="timeValueType"
             [minTime]="minTime"

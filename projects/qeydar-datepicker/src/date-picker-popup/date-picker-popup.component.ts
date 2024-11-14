@@ -3,7 +3,7 @@ import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-ad
 import { CustomLabels, DateRange, Lang_Locale, YearRange } from '../utils/models';
 import { DestroyService, QeydarDatePickerService } from '../date-picker.service';
 import { CalendarType, DatepickerMode } from '../utils/types';
-import { TimePickerComponent } from '../public-api';
+import { TimePickerComponent } from '../time-picker/time-picker.component';
 import { takeUntil } from 'rxjs';
 
 @Component({

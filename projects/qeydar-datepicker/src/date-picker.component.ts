@@ -5,7 +5,7 @@ import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-ada
 import { CustomLabels, DateRange, Lang_Locale, RangeInputLabels } from './utils/models';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
 import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair, HorizontalConnectionPos, VerticalConnectionPos } from '@angular/cdk/overlay';
-import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './public-api';
+import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './utils/overlay/overlay';
 import { DOCUMENT } from '@angular/common';
 import { DestroyService, QeydarDatePickerService } from './date-picker.service';
 import { fromEvent, takeUntil } from 'rxjs';
