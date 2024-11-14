@@ -19,13 +19,14 @@ You can see the online [Demo](https://datepicker.qydr.ir/)
 
 ## Components
 This package includes two main components:
-1. `QeydarDatePicker`: A flexible date picker with range selection support
+1. `QeydarDatePicker`: A flexible date picker with range selection support and time selection
 2. `QeydarTimePicker`: A standalone time picker with 12/24 hour format support
 
 ## Features
 ### DatePicker
 - 📅 Support for both Jalali (Persian) and Gregorian calendars
 - 🎯 Single date and date range selection
+- ⏰ Integrated time selection support
 - 🌐 Multilingual support (English/Persian)
 - 📏 Min/Max date restrictions
 - 🎨 Customizable styles
@@ -34,6 +35,8 @@ This package includes two main components:
 - 🔄 Form integration
 - 📋 Custom period labels
 - 📐 Multiple placement options
+- 🔄 Value format flexibility (string/Date object)
+- 🎯 Today button support
 
 ### TimePicker
 - ⏰ 12/24 hour format support
@@ -41,6 +44,8 @@ This package includes two main components:
 - 🔒 Time range restrictions
 - 🎭 Time input mask
 - 🌐 Multilingual AM/PM
+- 📍 Inline display mode
+- 🔄 Date adapter integration
 
 ## Installation
 
@@ -160,6 +165,37 @@ const customLabels: CustomLabels[] = [
 })
 ```
 
+### Date and Time Selection
+```typescript
+@Component({
+  template: `
+    <qeydar-date-picker 
+      [(ngModel)]="selectedDateTime"
+      [format]="'yyyy/MM/dd HH:mm:ss'"
+      [showTimePicker]="true"
+      [timeDisplayFormat]="'HH:mm'"
+      [showToday]="true"
+    ></qeydar-date-picker>
+  `
+})
+export class AppComponent {
+  selectedDateTime: Date | string = new Date();
+}
+```
+
+### Value Format Options
+```typescript
+@Component({
+  template: `
+    <qeydar-date-picker
+      [(ngModel)]="selectedDate"
+      [valueFormat]="'gregorian'"  // 'gregorian' | 'jalali' | 'date'
+      [calendarType]="'jalali'"
+    ></qeydar-date-picker>
+  `
+})
+```
+
 ## TimePicker Usage
 
 The TimePicker is a separate component for time selection:
@@ -195,6 +231,24 @@ export class AppComponent {
 ></qeydar-time-picker>
 ```
 
+### Inline Mode with Date Adapter
+```typescript
+@Component({
+  template: `
+    <qeydar-time-picker
+      [(ngModel)]="time"
+      [inline]="true"
+      [dateAdapter]="dateAdapter"
+      [timeDisplayFormat]="'HH:mm:ss'"
+      (timeChange)="onTimeChange($event)"
+    ></qeydar-time-picker>
+  `,
+})
+export class AppComponent {
+  constructor(public dateAdapter: GregorianDateAdapter) {}
+}
+```
+
 ## API Reference
 
 ### DatePicker Inputs
@@ -215,8 +269,8 @@ export class AppComponent {
 | disabled          | boolean                  | false         | Disable the datepicker |
 | isInline          | boolean                  | false         | Show calendar inline |
 | showSidebar       | boolean                  | true          | Show sidebar with months/years |
-| emitInDateFormat  | boolean                  | false         | Emit date object instead of string |
 | showToday         | boolean                  | false         | Highlight today's date |
+| valueFormat      | 'gregorian' \| 'jalali' \| 'date' | 'gregorian' | Output value format |
 
 ### DatePicker Outputs
 | Output        | Type                  | Description |
@@ -232,7 +286,6 @@ export class AppComponent {
 | Input          | Type                | Default      | Description |
 |----------------|---------------------|--------------|-------------|
 | placeholder    | string             | 'Select time' | Input placeholder |
-| timeFormat     | '12' \| '24'        | '12'         | Time format |
 | displayFormat  | string             | 'hh:mm a'    | Time display format |
 | minTime        | string             | undefined    | Minimum selectable time |
 | maxTime        | string             | undefined    | Maximum selectable time |

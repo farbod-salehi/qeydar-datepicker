@@ -814,10 +814,23 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       if (this.isRange) {
         this.datePickerPopup.selectedStartDate = this.selectedStartDate;
         this.datePickerPopup.selectedEndDate = this.selectedEndDate;
+        if (this.showTimePicker){
+          this.datePickerPopup.timePicker.updateFromDate(
+            this.activeInput == 'start'?
+            this.selectedStartDate:
+            this.selectedEndDate
+          );
+          this.datePickerPopup.timePicker.scrollToTime()
+        }
       } else {
         this.datePickerPopup.selectedDate = this.selectedDate;
+        if (this.showTimePicker){
+          this.datePickerPopup.timePicker.updateFromDate(this.selectedDate);
+          this.datePickerPopup.timePicker.scrollToTime();
+        }
       }
       this.datePickerPopup.generateCalendar();
+      this.cdref.detectChanges();
     }
   }
 

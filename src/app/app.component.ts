@@ -40,7 +40,7 @@ export class AppComponent implements OnInit{
   calendarType: CalendarType = 'jalali';
   mode: DatepickerMode = 'day';
   isRange: boolean = false;
-  format: string = 'yyyy/MM/dd';
+  format: string = 'yyyy/MM/dd HH:mm';
   footerDescription: string = '';
   inputLabel: string = '';
   rangeInputLabel: RangeInputLabels = {start: '', end: ''};

@@ -6,61 +6,88 @@ import { Directive, ElementRef, HostListener, Input } from '@angular/core';
 export class DateMaskDirective {
   @Input('qeydar-dateMask') dateFormat: string = 'yyyy/MM/dd';
 
-  private delimiter: string;
-  private parts: string[];
+  private delimiters: string[] = [];
+  private parts: string[] = [];
   private lastValue: string = '';
 
-  constructor(private el: ElementRef) {
-    this.delimiter = this.getDelimiter();
-    this.parts = this.dateFormat.split(this.delimiter);
+  constructor(private el: ElementRef) {}
+
+  ngOnInit() {
+    this.parseFormat();
+  }
+
+  private parseFormat() {
+    this.parts = [];
+    this.delimiters = [];
+    let currentPart = '';
+    
+    for (let i = 0; i < this.dateFormat.length; i++) {
+      const char = this.dateFormat[i];
+      
+      if (this.isFormatChar(char)) {
+        currentPart += char;
+      } else {
+        if (currentPart) {
+          this.parts.push(currentPart);
+          currentPart = '';
+        }
+        this.delimiters.push(char);
+      }
+    }
+    
+    if (currentPart) {
+      this.parts.push(currentPart);
+    }
+  }
+
+  private isFormatChar(char: string): boolean {
+    return /[yMdHhmsa]/i.test(char);
   }
 
   @HostListener('input', ['$event'])
   onInput(event: InputEvent) {
     const input = event.target as HTMLInputElement;
     const cursorPosition = input.selectionStart || 0;
-    let value = input.value.replace(/[^0-9/\-\.]/g, '');
+    let value = input.value.replace(/[^0-9APMapm\s:/\-\.]/g, '');
     
-    // Check if a character was removed
+    // Allow backspace/delete
     if (value.length < this.lastValue.length) {
-      // Allow removal of delimiters and characters before them
       this.lastValue = value;
       return;
     }
 
-    const parts = value.split(this.delimiter);
-    const formattedParts: string[] = [];
-
+    let formattedParts: string[] = [];
+    let currentValue = value;
     let shouldAddDelimiter = false;
     let totalLength = 0;
     let newCursorPosition = cursorPosition;
 
     for (let i = 0; i < this.parts.length; i++) {
-      if (parts[i]) {
-        let part = parts[i];
-        const expectedLength = this.getPartLength(this.parts[i]);
-        
-        if (part.length >= expectedLength) {
-          part = this.validatePart(part.slice(0, expectedLength), this.parts[i]);
-          shouldAddDelimiter = true;
-        }
+      const part = this.extractPart(currentValue, this.parts[i]);
+      if (!part && part !== '0') break;
 
-        formattedParts.push(part);
-        totalLength += part.length;
+      const expectedLength = this.getPartLength(this.parts[i]);
+      let formattedPart = part;
 
-        if (shouldAddDelimiter && i < this.parts.length - 1) {
-          formattedParts.push(this.delimiter);
-          totalLength += this.delimiter.length;
-          shouldAddDelimiter = false;
-
-          // If cursor was at the end of this part, move it after the delimiter
-          if (cursorPosition === totalLength - this.delimiter.length) {
-            newCursorPosition = totalLength;
-          }
-        }
-      } else {
-        break;
+      if (formattedPart.length >= expectedLength) {
+        formattedPart = this.validatePart(formattedPart.slice(0, expectedLength), this.parts[i]);
+        shouldAddDelimiter = true;
       }
+
+      formattedParts.push(formattedPart);
+      totalLength += formattedPart.length;
+
+      if (shouldAddDelimiter && i < this.parts.length - 1) {
+        formattedParts.push(this.delimiters[i] || '');
+        totalLength += 1;
+        shouldAddDelimiter = false;
+
+        if (cursorPosition === totalLength - 1) {
+          newCursorPosition = totalLength;
+        }
+      }
+
+      currentValue = this.removeProcessedPart(currentValue, part);
     }
 
     const formattedValue = formattedParts.join('');
@@ -73,70 +100,139 @@ export class DateMaskDirective {
     this.lastValue = formattedValue;
   }
 
+  private extractPart(value: string, format: string): string {
+    if (!value) return '';
+
+    if (format[0].toLowerCase() === 'a') {
+      // Handle AM/PM
+      const match = value.match(/^[AaPp][Mm]?/);
+      return match ? match[0].toUpperCase() : '';
+    }
+
+    // Handle numeric parts
+    const match = value.match(/^\d+/);
+    return match ? match[0] : '';
+  }
+
+  private removeProcessedPart(value: string, part: string): string {
+    if (!part) return value;
+    
+    // Remove part and following delimiter if exists
+    const remainingValue = value.slice(part.length);
+    return remainingValue.replace(/^[:/\s-]/, '');
+  }
+
   @HostListener('keydown', ['$event'])
   onKeyDown(event: KeyboardEvent) {
-    if (event.key === this.delimiter) {
-      const input = event.target as HTMLInputElement;
-      const cursorPosition = input.selectionStart || 0;
-      const parts = input.value.split(this.delimiter);
-      const currentPartIndex = this.getCurrentPartIndex(input.value, cursorPosition);
+    const input = event.target as HTMLInputElement;
+    const cursorPosition = input.selectionStart || 0;
+    
+    // Allow control keys
+    if (event.key === 'Backspace' || event.key === 'Delete' || 
+        event.key === 'ArrowLeft' || event.key === 'ArrowRight' || 
+        event.key === 'Tab' || event.ctrlKey) {
+      return;
+    }
 
-      if (currentPartIndex < this.parts.length - 1) {
-        const currentPart = this.validatePart(parts[currentPartIndex], this.parts[currentPartIndex]);
-        parts[currentPartIndex] = currentPart;
+    const currentPartIndex = this.getCurrentPartIndex(input.value, cursorPosition);
+    if (currentPartIndex === -1) return;
+
+    const currentFormat = this.parts[currentPartIndex];
+    const isTimeDelimiter = event.key === ':' && cursorPosition > 0 && 
+                           (this.parts[currentPartIndex - 1]?.includes('H') || 
+                            this.parts[currentPartIndex - 1]?.includes('h'));
+
+    // Allow time delimiter after hours
+    if (isTimeDelimiter) {
+      if (this.delimiters[currentPartIndex - 1] === ':') {
+        const parts = input.value.split(/[:/\s-]/);
+        const currentPart = this.validatePart(parts[currentPartIndex - 1], this.parts[currentPartIndex - 1]);
+        parts[currentPartIndex - 1] = currentPart;
         
-        const newValue = parts.slice(0, currentPartIndex + 1).join(this.delimiter) + this.delimiter;
-        input.value = newValue + parts.slice(currentPartIndex + 1).join(this.delimiter);
+        const newValue = parts.slice(0, currentPartIndex).join(this.delimiters[currentPartIndex - 1]) + ':';
+        input.value = newValue + parts.slice(currentPartIndex).join(this.delimiters[currentPartIndex]);
         
-        const newPosition = newValue.length;
-        input.setSelectionRange(newPosition, newPosition);
+        input.setSelectionRange(newValue.length, newValue.length);
         event.preventDefault();
       }
+      return;
+    }
+
+    // Handle AM/PM input
+    if (currentFormat[0].toLowerCase() === 'a') {
+      if (!/^[AaPpMm]$/.test(event.key)) {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    // Allow only digits for other parts
+    if (!/^\d$/.test(event.key)) {
+      event.preventDefault();
     }
   }
 
-  private getDelimiter(): string {
-    const match = this.dateFormat.match(/[^yMd]/);
-    return match ? match[0] : '/';
-  }
-
   private validatePart(value: string, format: string): string {
-    if (value === '') return '';  // Return empty string if value is empty
+    if (value === '') return '';
+    
+    const type = format[0];
+    if (type === 'a') {
+      const upperValue = value.toUpperCase();
+      if (value.length === 1) {
+        return upperValue === 'A' || upperValue === 'P' ? upperValue : '';
+      }
+      return ['AM', 'PM'].includes(upperValue) ? upperValue : upperValue[0];
+    }
+
     const numValue = parseInt(value, 10);
-    switch (format) {
-      case 'MM':
+    switch (type) {
+      case 'h': // 12-hour format
         return Math.min(Math.max(numValue, 1), 12).toString().padStart(2, '0');
-      case 'dd':
+      
+      case 'H': // 24-hour format
+        return Math.min(Math.max(numValue, 0), 23).toString().padStart(2, '0');
+      
+      case 'm': // month or minute
+        if (format === 'MM') {
+          return Math.min(Math.max(numValue, 1), 12).toString().padStart(2, '0');
+        }
+        return Math.min(Math.max(numValue, 0), 59).toString().padStart(2, '0');
+      
+      case 's': // seconds
+        return Math.min(Math.max(numValue, 0), 59).toString().padStart(2, '0');
+      
+      case 'd': // day
         return Math.min(Math.max(numValue, 1), 31).toString().padStart(2, '0');
-      case 'yyyy':
+      
+      case 'y': // year
+        if (format.length === 2) return value.padStart(2, '0');
         return value.padStart(4, '0');
+      
       default:
         return value;
     }
   }
 
   private getPartLength(format: string): number {
-    switch (format) {
-      case 'yyyy':
-        return 4;
-      case 'MM':
-      case 'dd':
-        return 2;
-      default:
-        return 2;
+    const type = format[0].toLowerCase();
+    switch (type) {
+      case 'y': return format.length === 2 ? 2 : 4;
+      case 'a': return format.length === 1 ? 1 : 2;
+      default: return 2;
     }
   }
 
   private getCurrentPartIndex(value: string, cursorPosition: number): number {
-    const parts = value.split(this.delimiter);
+    const parts = value.split(/[:/\s-]/);
     let currentIndex = 0;
     let totalLength = 0;
 
     for (let i = 0; i < parts.length; i++) {
       totalLength += parts[i].length;
-      if (cursorPosition <= totalLength + i * this.delimiter.length) {
+      if (cursorPosition <= totalLength + i) {
         return i;
       }
+      totalLength += 1; // Add delimiter length
     }
 
     return parts.length - 1;

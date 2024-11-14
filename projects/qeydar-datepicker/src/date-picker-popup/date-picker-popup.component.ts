@@ -321,7 +321,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     }
   }
 
-  private updateSingleDateTime(timeDate: Date): void {
+  updateSingleDateTime(timeDate: Date): void {
     if (!this.selectedDate) {
       this.selectedDate = this.dateAdapter.today();
     }
@@ -330,7 +330,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.selectedDate = updatedDate;
   }
 
-  private updateRangeDateTime(timeDate: Date): void {
+  updateRangeDateTime(timeDate: Date): void {
     if (this.activeInput === 'start' && this.selectedStartDate) {
       const updatedDate = this.applyTimeToDate(this.selectedStartDate, timeDate);
       this.selectedStartDate = updatedDate;
