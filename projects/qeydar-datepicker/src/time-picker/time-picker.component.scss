@@ -87,6 +87,8 @@ input {
   min-width: 200px;
   overflow: hidden;
   margin-block: 3px;
+  height: 40vh;
+  max-height: 280px;
 
   &.inline {
     box-shadow: none;
@@ -127,6 +129,7 @@ input {
 
 .time-picker-content {
   padding: 8px;
+  height: calc(100% - 59px);
 }
 
 .time-columns {
@@ -135,12 +138,12 @@ input {
   justify-content: center;
   padding: 8px;
   gap: 8px;
+  height: 100%;
 }
 
 .time-column {
   flex: 1;
-  height: 30vh;
-  max-height: 220px;
+  height: 100%;
   overflow-y: auto;
   scrollbar-width: none;
 
@@ -150,7 +153,7 @@ input {
 
   button {
     width: 100%;
-    padding: 8px;
+    padding: 6px 8px;
     @include button-reset;
     color: $text-color;
     font-size: 14px;
@@ -228,5 +231,20 @@ button {
 
   &:hover {
     color: $primary-hover;
+  }
+}
+
+.embedded-time-picker{
+  &.time-picker-popup {
+    .time-picker-content {
+      height: 100%;
+    }
+  }
+  &.time-picker-popup.inline {
+    border: none;
+    border-radius: 0;
+    height: 286px;
+    max-height: 290px;
+    direction: ltr;
   }
 }

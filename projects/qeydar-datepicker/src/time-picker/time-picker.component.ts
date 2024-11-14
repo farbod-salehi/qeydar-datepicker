@@ -182,16 +182,12 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   @Input() showIcon = true;
   @Input() dateAdapter: DateAdapter<Date>;
   @Input() inline = false;
-  @Input() set timeFormat(value: TimeFormat) {
-    this._timeFormat = value;
-    this.updateHourRange();
-  }
-  get timeFormat(): TimeFormat {
-    return this._timeFormat;
-  }
   @Input() set displayFormat(value: string) {
     this._displayFormat = value;
     this.showSeconds = value.toLowerCase().includes('s');
+    // Infer time format from display format
+    this.timeFormat = this.getTimeFormatFromDisplayFormat(value);
+    this.updateHourRange();
     this.updateTimeDisplay();
   }
   get displayFormat(): string {
@@ -204,7 +200,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   @ViewChild('timePickerInput') timePickerInput!: ElementRef<HTMLInputElement>;
   @ViewChild('popupWrapper') popupWrapper!: ElementRef<HTMLDivElement>;
 
-  private _timeFormat: TimeFormat = '12';
+  timeFormat: TimeFormat = '12';
   private _displayFormat = 'hh:mm a';
   private _value: string | Date | null = null;
   private onChange: (value: any) => void = () => {};
@@ -255,6 +251,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     // Auto-open for inline mode
     if (this.inline) {
       this.isOpen = true;
+      this.scrollToTime();
     }
   }
 
@@ -306,9 +303,10 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
   // Time management
   private updateHourRange(): void {
-    this.hours = this.timeFormat === '12'
-    ? Array.from({ length: 12 }, (_, i) => i + 1)
-    : Array.from({ length: 24 }, (_, i) => i);
+    const format = this.getTimeFormatFromDisplayFormat(this._displayFormat);
+    this.hours = format === '12'
+      ? Array.from({ length: 12 }, (_, i) => i + 1)
+      : Array.from({ length: 24 }, (_, i) => i);
   }
 
   private formatTime(date?: Date): string {
@@ -384,7 +382,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     }
   }
 
-  private updateFromDate(date: Date | null): void {
+  updateFromDate(date: Date | null): void {
     if (date && !isNaN(date.getTime()) && this.dateAdapter) {
       const hours = this.dateAdapter.getHours(date);
       if (hours === null) return;
@@ -686,8 +684,14 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     }
   }
 
+  private getTimeFormatFromDisplayFormat(format: string): '12' | '24' {
+    // Check for 24-hour format indicators
+    const has24HourFormat = /\bH{1,2}\b/.test(format);
+    return has24HourFormat ? '24' : '12';
+  }
+
   // UI Update methods
-  private async scrollToTime(){
+  async scrollToTime(){
     await this.scrollToSelectedItem(`h${this.selectedTime.hour}`, 'auto'),
     await this.scrollToSelectedItem(`m${this.selectedTime.minute}`, 'auto'),
     this.showSeconds ? await this.scrollToSelectedItem(`s${this.selectedTime.second}`, 'auto') : '';

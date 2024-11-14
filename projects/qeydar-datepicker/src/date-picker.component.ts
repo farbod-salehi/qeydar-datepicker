@@ -112,6 +112,8 @@ import { CalendarType, DatepickerMode, Placement, RangePartType } from './utils/
             [activeInput]="activeInput"
             [showSidebar]="showSidebar"
             [showToday]="showToday"
+            [showTimePicker]="showTimePicker"
+            [timeDisplayFormat]="timeDisplayFormat"
             (dateSelected)="onDateSelected($event)"
             (dateRangeSelected)="onDateRangeSelected($event)"
             (closePicker)="close()"
@@ -258,7 +260,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() rtl = false;
   @Input() mode: DatepickerMode = 'day';
   @Input() isRange = false;
-  @Input() format = 'yyyy/MM/dd';
   @Input() customLabels: Array<CustomLabels>;
   @Input() calendarType: CalendarType = 'gregorian';
   @Input() lang: Lang_Locale;
@@ -289,6 +290,16 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   get maxDate() : Date {
     return this._maxDate
   }
+
+  @Input() set format(value: string) {
+    this._format = value;
+    this.showTimePicker = this.hasTimeComponent(value);
+    this.timeDisplayFormat = this.extractTimeFormat(value);
+  }
+  get format(): string {
+    return this._format;
+  }
+
   // ========== Output Properties ==========
   @Output() onFocus = new EventEmitter<any>();
   @Output() onBlur = new EventEmitter<any>();
@@ -315,12 +326,15 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   dateAdapter: DateAdapter<Date>;
   activeInput: 'start' | 'end' | '' = '';
   hideStateHelper = false;
-
   isInternalChange = false;
   lastEmittedValue: any = null;
+  showTimePicker = false;
+  timeDisplayFormat = 'HH:mm';
+
   documentClickListener: (event: MouseEvent) => void;
   private _minDate: any;
   private _maxDate: any;
+  private _format = 'yyyy/MM/dd';
 
   constructor(
     public fb: FormBuilder,
@@ -544,7 +558,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       const endFormatted = this.dateAdapter.format(this.selectedEndDate, this.format);
       this.form.get('endDateInput')?.setValue(endFormatted, { emitEvent: false });
       this.emitValueIfChanged();
-      this.close();
+      if (!this.hasTimeComponent(this.format)) this.close();
       this.updateDatePickerPopup();
       this.focus();
     }
@@ -904,5 +918,15 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       return value;
     }
     return this.dateAdapter.parse(value, this.format);
+  }
+
+  // ========== Time Methods ==========
+  private hasTimeComponent(format: string): boolean {
+    return /[Hh]|[m]|[s]|[a]/g.test(format);
+  }
+
+  private extractTimeFormat(format: string): string {
+    const timeMatch = format.match(/[Hh]{1,2}:mm(?::ss)?(?:\s*[aA])?/);
+    return timeMatch ? timeMatch[0] : 'HH:mm';
   }
 }

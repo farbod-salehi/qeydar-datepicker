@@ -194,13 +194,6 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="mode">Time format:</label>
-                            <select name="mode" id="mode" [(ngModel)]="timeFormat" (change)="updateCode()">
-                                <option [value]="'12'">12</option>
-                                <option [value]="'24'">24</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
                             <label for="Rtl">Rtl:</label>
                             <div class="switch-container">
                                 <input type="checkbox" (ngModelChange)="updateCode()" [(ngModel)]="rtl"
@@ -228,12 +221,12 @@
 
                         <div class="form-group">
                             <label for="MinDate">Min time:</label>
-                            <qeydar-time-picker [timeFormat]="timeFormat" [displayFormat]="timeDisplayFormat"
+                            <qeydar-time-picker [displayFormat]="timeDisplayFormat"
                                 [(ngModel)]="minTime" (ngModelChange)="onChange($event)"></qeydar-time-picker>
                         </div>
                         <div class="form-group">
                             <label for="MaxDate">Max time:</label>
-                            <qeydar-time-picker [timeFormat]="timeFormat" [displayFormat]="timeDisplayFormat"
+                            <qeydar-time-picker [displayFormat]="timeDisplayFormat"
                                 [(ngModel)]="maxTime" (ngModelChange)="onChange($event)"></qeydar-time-picker>
                         </div>
                         <div class="form-group">
@@ -252,10 +245,18 @@
                     <h2>Settings Result</h2>
                     <p>Display the demo based on the settings</p>
                     <div class="demo">
-                        <qeydar-time-picker [rtl]="rtl" [showIcon]="showIcon" [timeFormat]="timeFormat"
-                            [displayFormat]="timeDisplayFormat" [valueType]="timeValueType" [minTime]="minTime"
-                            [maxTime]="maxTime" [(ngModel)]="selectedTime" [inline]="isInline"
-                            (ngModelChange)="onChange($event)"></qeydar-time-picker>
+                        <qeydar-time-picker
+                            [rtl]="rtl"
+                            [showIcon]="showIcon"
+                            [displayFormat]="timeDisplayFormat"
+                            [valueType]="timeValueType"
+                            [minTime]="minTime"
+                            [maxTime]="maxTime"
+                            [(ngModel)]="selectedTime"
+                            [inline]="isInline"
+                            (ngModelChange)="onChange($event)"
+                        >
+                        </qeydar-time-picker>
                         <code style="margin-top: 10px;display: block;">selectedDate:  {{ selectedTime | json }}</code>
                     </div>
                     <button class="toggle-btn" (click)="toggleCode(code)">show code</button>

@@ -22,6 +22,7 @@ export interface RangeInputLabels {
 }
 
 export interface Lang_Locale {
+    today: string;
     lastDay: string;
     lastWeek: string;
     lastMonth: string;
@@ -47,6 +48,7 @@ export interface Lang_Locale {
     providedIn: 'root'
 })
 export class lang_Fa implements Lang_Locale{
+    today:string = "امروز";
     lastDay:string = "آخرین روز";
     lastWeek:string = "آخرین هفته";
     lastMonth:string = "آخرین ماه";
@@ -72,6 +74,7 @@ export class lang_Fa implements Lang_Locale{
     providedIn: 'root'
 })
 export class lang_En implements Lang_Locale{
+    today:string = "Today"
     lastDay:string = "Last Day";
     lastWeek:string = "Last Week";
     lastMonth:string = "Last Month";

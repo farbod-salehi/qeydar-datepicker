@@ -1,8 +1,10 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener, OnDestroy } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { CustomLabels, DateRange, Lang_Locale, YearRange } from '../utils/models';
-import { QeydarDatePickerService } from '../date-picker.service';
+import { DestroyService, QeydarDatePickerService } from '../date-picker.service';
 import { CalendarType, DatepickerMode } from '../utils/types';
+import { TimePickerComponent } from '../public-api';
+import { takeUntil } from 'rxjs';
 
 @Component({
   selector: 'qeydar-date-picker-popup',
@@ -113,15 +115,29 @@ import { CalendarType, DatepickerMode } from '../utils/types';
             </button>
           </div>
         </div>
+
+        <!-- Time Picker Integration -->
+        <div *ngIf="showTimePicker" class="time-picker-section">
+          <qeydar-time-picker
+            #timePicker
+            [rtl]="rtl"
+            [dateAdapter]="dateAdapter"
+            [valueType]="'date'"
+            [displayFormat]="timeDisplayFormat"
+            [inline]="true"
+            [cssClass]="'embedded-time-picker'"
+            (timeChange)="onTimeChange($event)"
+          ></qeydar-time-picker>
+        </div>
       </div>
-      <div class="date-picker-footer" *ngIf="footerDescription">
-        <div class="footer-description">
+      <div class="date-picker-footer" *ngIf="footerDescription || showTimePicker || showToday">
+        <div class="footer-description" *ngIf="footerDescription">
           {{ footerDescription }}
         </div>
-        <!-- <div class="footer-actions">
-          <button class="footer-button" (click)="onTodayClick()">{{ todayLabel }}</button>
-          <button class="footer-button" (click)="onClearClick()">{{ clearLabel }}</button>
-        </div> -->
+        <div class="footer-actions">
+          <button *ngIf="showTimePicker" class="footer-button ok" (click)="onOkClick()">{{ lang.ok }}</button>
+          <button class="footer-button" (click)="onTodayClick()">{{ lang.today }}</button>
+        </div>
       </div>
     </div>
   `,
@@ -144,6 +160,8 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() activeInput: 'start' | 'end' | '' = null;
   @Input() showSidebar = true;
   @Input() showToday: boolean;
+  @Input() showTimePicker = false;
+  @Input() timeDisplayFormat = 'HH:mm';
 
   // ========== Output Properties ==========
   @Output() dateSelected = new EventEmitter<Date>();
@@ -153,6 +171,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   // ========== ViewChild Properties ==========
   @ViewChild('itemSelector') itemSelector: ElementRef;
+  @ViewChild(TimePickerComponent) timePicker: TimePickerComponent;
 
   // ========== Class Properties ==========
   dateAdapter: DateAdapter<Date>;
@@ -180,6 +199,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     public dpService: QeydarDatePickerService,
     public jalali: JalaliDateAdapter,
     public gregorian: GregorianDateAdapter,
+    public destroy$: DestroyService
   ) {
     cdr.markForCheck();
   }
@@ -195,6 +215,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   ngAfterViewInit() {
     this.scrollToSelectedItem();
+    this.setTimePickerDate();
   }
 
   ngOnDestroy(): void {
@@ -289,9 +310,84 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.cdr.detectChanges();
   }
 
+  // ========== Time Selection Methods ==========
+  onTimeChange(time: string | Date): void {
+    const timeDate = time instanceof Date ? time : new Date(time);
+    
+    if (!this.isRange) {
+      this.updateSingleDateTime(timeDate);
+    } else {
+      this.updateRangeDateTime(timeDate);
+    }
+  }
+
+  private updateSingleDateTime(timeDate: Date): void {
+    if (!this.selectedDate) {
+      this.selectedDate = this.dateAdapter.today();
+    }
+
+    const updatedDate = this.applyTimeToDate(this.selectedDate, timeDate);
+    this.selectedDate = updatedDate;
+  }
+
+  private updateRangeDateTime(timeDate: Date): void {
+    if (this.activeInput === 'start' && this.selectedStartDate) {
+      const updatedDate = this.applyTimeToDate(this.selectedStartDate, timeDate);
+      this.selectedStartDate = updatedDate;
+      this.dateRangeSelected.emit({ start: this.selectedStartDate, end: null });
+    } else if (this.activeInput === 'end' && this.selectedEndDate) {
+      this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
+      const updatedDate = this.applyTimeToDate(this.selectedEndDate, timeDate);
+      this.selectedEndDate = updatedDate;
+    }
+  }
+
+  private applyTimeToDate(date: Date, timeDate: Date): Date {
+    let updatedDate = this.dateAdapter.setHours(date, timeDate.getHours());
+    updatedDate = this.dateAdapter.setMinutes(updatedDate, timeDate.getMinutes());
+    updatedDate = this.dateAdapter.setSeconds(updatedDate, timeDate.getSeconds());
+    return updatedDate;
+  }
+
+  setTimePickerDate(date?: Date) {
+    if (this.showTimePicker) {
+      if (this.isRange) {
+        this.dpService.activeInput$.asObservable()
+          .pipe(
+            takeUntil(this.destroy$)
+          )
+          .subscribe(active => {
+            if (active == 'start') {
+              this.timePicker.updateFromDate(this.selectedStartDate);
+            } else {
+              this.timePicker.updateFromDate(this.selectedEndDate);
+            }
+            this.timePicker.scrollToTime();
+          });
+      } else {
+        console.log(date);
+        
+        this.timePicker.updateFromDate(date || this.selectedDate);
+        this.timePicker.scrollToTime();
+      }
+    }
+  }
+
   // ========== Date Selection Methods ==========
   selectDate(date: Date): void {
     if (this.isDateDisabled(date)) return;
+
+    if (this.showTimePicker) {
+      const existingDate = this.isRange ? 
+        (this.activeInput === 'start' ? this.selectedStartDate : this.selectedEndDate) :
+        this.selectedDate;
+
+      if (existingDate) {
+        date = this.applyTimeToDate(date, existingDate);
+      }
+    } else {
+      date = this.applyTimeToDate(date, new Date())
+    }
 
     if (this.isRange) {
       this.handleRangeSelection(date);
@@ -308,10 +404,16 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
         this.dateAdapter.isBefore(date, this.selectedStartDate)) {
       this.selectedStartDate = date;
       this.selectedEndDate = null;
-      this.activeInput = 'end';
-      this.dpService.activeInput$.next('end');
+      if (!this.showTimePicker) {
+        this.activeInput = 'end';
+        this.dpService.activeInput$.next('end');
+      }
       this.dateRangeSelected.emit({ start: this.selectedStartDate, end: null });
     } else {
+      if (this.showTimePicker) {
+        this.activeInput = 'end';
+        this.dpService.activeInput$.next('end');
+      }
       this.selectedEndDate = date;
       this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
     }
@@ -319,7 +421,8 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   handleSingleSelection(date: Date): void {
     this.selectedDate = date;
-    this.dateSelected.emit(date);
+    if (!this.showTimePicker)
+      this.dateSelected.emit(date);
   }
 
   selectMonth(month: number, closeAfterSelection: boolean = false): void {
@@ -383,6 +486,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   goPrev(): void {
     if (this.viewMode === 'days') {
       this.prevMonth();
+      this.cdr.detectChanges();
       return;
     }
 
@@ -405,6 +509,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   goNext(): void {
     if (this.viewMode === 'days') {
       this.nextMonth();
+      this.cdr.detectChanges();
       return;
     }
 
@@ -647,6 +752,23 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     if (period.value !== 'custom') {
       const [start, end] = period.value as Date[];
       this.dateRangeSelected.emit({ start, end });
+    }
+  }
+
+  onTodayClick() {
+    this.currentDate = this.selectedDate = new Date();
+    this.generateCalendar();
+    this.selectDate(this.currentDate);
+    this.setTimePickerDate(this.currentDate);
+    this.cdr.detectChanges();
+  }
+
+  onOkClick() {
+    if (this.isRange) {
+      this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
+      this.closeDatePicker()
+    } else {
+      this.dateSelected.emit(this.selectedDate);
     }
   }
 
