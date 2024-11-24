@@ -24,6 +24,7 @@ import { CalendarType, DatepickerMode, Placement, RangePartType, ValueFormat } f
               type="text"
               formControlName="dateInput"
               [qeydar-dateMask]="format"
+              [disableInputMask]="disableInputMask"
               (click)="toggleDatePicker(null,$event)"
               (focus)="onFocusInput(null,$event)"
               (blur)="onInputBlur(null,$event)"
@@ -50,6 +51,7 @@ import { CalendarType, DatepickerMode, Placement, RangePartType, ValueFormat } f
               type="text"
               formControlName="startDateInput"
               [qeydar-dateMask]="format"
+              [disableInputMask]="disableInputMask"
               (click)="toggleDatePicker('start',$event)"
               (focus)="onFocusInput('start',$event)"
               (focusout)="onFocusout($event)"
@@ -65,6 +67,7 @@ import { CalendarType, DatepickerMode, Placement, RangePartType, ValueFormat } f
               type="text"
               formControlName="endDateInput"
               [qeydar-dateMask]="format"
+              [disableInputMask]="disableInputMask"
               (click)="toggleDatePicker('end',$event)"
               (focus)="onFocusInput('end',$event)"
               (focusout)="onFocusout($event)"
@@ -273,6 +276,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() showSidebar = true;
   @Input() showToday = false;
   @Input() valueFormat: ValueFormat = 'gregorian';
+  @Input() disableInputMask = false;
   @Input() set minDate(date: Date | string | null) {
     if (date) {
       this._minDate = date;

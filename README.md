@@ -271,6 +271,7 @@ export class AppComponent {
 | showSidebar       | boolean                  | true          | Show sidebar with months/years |
 | showToday         | boolean                  | false         | Highlight today's date |
 | valueFormat      | 'gregorian' \| 'jalali' \| 'date' | 'gregorian' | Output value format |
+| disableInputMask  | boolean                  | false         | To disable input mask |
 
 ### DatePicker Outputs
 | Output        | Type                  | Description |
@@ -289,13 +290,14 @@ export class AppComponent {
 | displayFormat  | string             | 'hh:mm a'    | Time display format |
 | minTime        | string             | undefined    | Minimum selectable time |
 | maxTime        | string             | undefined    | Maximum selectable time |
-| valueType      | 'string' \| 'date'  | 'string'     | Output value type |
+| valueType      | 'string' \| 'date' | 'string'     | Output value type |
 | cssClass       | string             | ''           | Custom CSS class |
 | showIcon       | boolean            | true         | Show clock icon |
 | rtl            | boolean            | false        | Right-to-left mode |
 | lang           | Lang_Locale        | lang_En      | Language settings |
 | inline         | boolean            | false        | Show time picker inline (without popup) |
-| dateAdapter    | DateAdapter<Date>   | undefined    | Custom date adapter for time manipulation |
+| dateAdapter    | DateAdapter<Date>  | undefined    | Custom date adapter for time manipulation |
+| disableInputMask  | boolean         | false        | To disable input mask |
 
 ### TimePicker Outputs
 

@@ -29,6 +29,8 @@ import { DEFAULT_DATE_PICKER_POSITIONS } from "../utils/overlay/overlay"
         <div class="input-wrapper" [class.focus]="isOpen">
           <input
             #timePickerInput
+            [qeydar-dateMask]="displayFormat"
+            [disableInputMask]="disableInputMask"
             type="text"
             class="time-picker-input"
             [class.focus]="isOpen"
@@ -183,6 +185,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   @Input() showIcon = true;
   @Input() dateAdapter: DateAdapter<Date>;
   @Input() inline = false;
+  @Input() disableInputMask = false;
   @Input() set displayFormat(value: string) {
     this._displayFormat = value;
     this.showSeconds = value.toLowerCase().includes('s');

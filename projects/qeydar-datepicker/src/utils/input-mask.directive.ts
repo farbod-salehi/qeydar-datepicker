@@ -5,18 +5,22 @@ import { Directive, ElementRef, HostListener, Input } from '@angular/core';
 })
 export class DateMaskDirective {
   @Input('qeydar-dateMask') dateFormat: string = 'yyyy/MM/dd';
+  @Input() disableInputMask = false;
 
-  private delimiters: string[] = [];
-  private parts: string[] = [];
-  private lastValue: string = '';
+  delimiters: string[] = [];
+  parts: string[] = [];
+  lastValue: string = '';
 
-  constructor(private el: ElementRef) {}
+  constructor(public el: ElementRef) {}
 
   ngOnInit() {
     this.parseFormat();
   }
 
-  private parseFormat() {
+  parseFormat() {
+    if (this.disableInputMask)
+      return;
+
     this.parts = [];
     this.delimiters = [];
     let currentPart = '';
@@ -40,12 +44,15 @@ export class DateMaskDirective {
     }
   }
 
-  private isFormatChar(char: string): boolean {
+  isFormatChar(char: string): boolean {
     return /[yMdHhmsa]/i.test(char);
   }
 
   @HostListener('input', ['$event'])
   onInput(event: InputEvent) {
+    if (this.disableInputMask)
+      return;
+
     const input = event.target as HTMLInputElement;
     const cursorPosition = input.selectionStart || 0;
     let value = input.value.replace(/[^0-9APMapm\s:/\-\.]/g, '');
@@ -100,7 +107,7 @@ export class DateMaskDirective {
     this.lastValue = formattedValue;
   }
 
-  private extractPart(value: string, format: string): string {
+  extractPart(value: string, format: string): string {
     if (!value) return '';
 
     if (format[0].toLowerCase() === 'a') {
@@ -114,7 +121,7 @@ export class DateMaskDirective {
     return match ? match[0] : '';
   }
 
-  private removeProcessedPart(value: string, part: string): string {
+  removeProcessedPart(value: string, part: string): string {
     if (!part) return value;
     
     // Remove part and following delimiter if exists
@@ -124,6 +131,9 @@ export class DateMaskDirective {
 
   @HostListener('keydown', ['$event'])
   onKeyDown(event: KeyboardEvent) {
+    if (this.disableInputMask)
+      return;
+
     const input = event.target as HTMLInputElement;
     const cursorPosition = input.selectionStart || 0;
     
@@ -172,10 +182,10 @@ export class DateMaskDirective {
     }
   }
 
-  private validatePart(value: string, format: string): string {
+  validatePart(value: string, format: string): string {
     if (value === '') return '';
     
-    const type = format[0];
+    const type = format[0].toLowerCase();
     if (type === 'a') {
       const upperValue = value.toUpperCase();
       if (value.length === 1) {
@@ -187,10 +197,10 @@ export class DateMaskDirective {
     const numValue = parseInt(value, 10);
     switch (type) {
       case 'h': // 12-hour format
+        if (format[0] == 'H')
+          return Math.min(Math.max(numValue, 0), 23).toString().padStart(2, '0');
+
         return Math.min(Math.max(numValue, 1), 12).toString().padStart(2, '0');
-      
-      case 'H': // 24-hour format
-        return Math.min(Math.max(numValue, 0), 23).toString().padStart(2, '0');
       
       case 'm': // month or minute
         if (format === 'MM') {
@@ -213,7 +223,7 @@ export class DateMaskDirective {
     }
   }
 
-  private getPartLength(format: string): number {
+  getPartLength(format: string): number {
     const type = format[0].toLowerCase();
     switch (type) {
       case 'y': return format.length === 2 ? 2 : 4;
@@ -222,7 +232,7 @@ export class DateMaskDirective {
     }
   }
 
-  private getCurrentPartIndex(value: string, cursorPosition: number): number {
+  getCurrentPartIndex(value: string, cursorPosition: number): number {
     const parts = value.split(/[:/\s-]/);
     let currentIndex = 0;
     let totalLength = 0;
