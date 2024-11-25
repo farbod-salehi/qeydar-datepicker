@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { CustomLabels, DateRange, Lang_Locale, YearRange } from '../utils/models';
 import { DestroyService, QeydarDatePickerService } from '../date-picker.service';
@@ -10,6 +10,7 @@ import { NgFor, NgIf } from '@angular/common';
 @Component({
   selector: 'qeydar-date-picker-popup',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgIf,
     NgFor,
@@ -306,7 +307,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.viewMode = 'months';
     this.generateYearList(15);
     this.scrollToSelectedItem(this.dateAdapter.getYear(this.getDate));
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   showYearSelector(): void {
@@ -314,7 +315,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
     this.generateYearRanges();
     this.generateYearList();
     this.scrollToSelectedItem();
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   // ========== Time Selection Methods ==========
@@ -402,10 +403,13 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       this.handleSingleSelection(date);
     }
     this.currentDate = date;
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   handleRangeSelection(date: Date): void {
+    const prevStartDate = this.selectedStartDate;
+    const prevEndDate = this.selectedEndDate;
+
     if (!this.selectedStartDate || 
         (this.selectedStartDate && this.selectedEndDate) || 
         this.dateAdapter.isBefore(date, this.selectedStartDate)) {
@@ -424,6 +428,9 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       this.selectedEndDate = date;
       this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
     }
+
+    if (prevStartDate !== this.selectedStartDate || prevEndDate !== this.selectedEndDate)
+      this.cdr.markForCheck();
   }
 
   handleSingleSelection(date: Date): void {

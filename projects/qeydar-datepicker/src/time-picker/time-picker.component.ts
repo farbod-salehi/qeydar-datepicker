@@ -10,7 +10,7 @@
  * - Min/Max time validation
  * - Custom styling
  */
-import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, ChangeDetectorRef, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CdkOverlayOrigin, ConnectedOverlayPositionChange } from '@angular/cdk/overlay';
 import { slideMotion } from '../utils/animation/slide';
@@ -24,6 +24,7 @@ import { DateMaskDirective } from '../utils/input-mask.directive';
 
 @Component({
   selector: 'qeydar-time-picker',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="time-picker-wrapper" [formGroup]="form">
       <!-- Regular input mode -->
@@ -487,9 +488,14 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   open(): void {
     if (this.inline) return;
 
+    const wasOpen = this.isOpen;
     this.isOpen = true;
     this.openChange.emit(true);
     this.scrollToTime();
+
+    if (!wasOpen) {
+      this.cdref.markForCheck();
+    }
   }
 
   close(): void {
@@ -499,7 +505,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     if (this.isOpen) {
       this.isOpen = false;
       this.openChange.emit(false);
-      this.cdref.detectChanges();
+      this.cdref.markForCheck();
     }
   }
 
@@ -557,12 +563,16 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
     if (!this.isTimeValid()) return;
 
-    this._value = outputValue;
-    this.form.get('timeInput')?.setValue(this.formatTime(), { emitEvent: false });
-    
-    this.onChange(outputValue);
-    this.timeChange.emit(outputValue);
-    
+    const valueChanged = JSON.stringify(this._value) !== JSON.stringify(outputValue);
+    if (valueChanged) {
+      this._value = outputValue;
+      this.form.get('timeInput')?.setValue(this.formatTime(), { emitEvent: false });
+      
+      this.onChange(outputValue);
+      this.timeChange.emit(outputValue);
+      this.cdref.markForCheck();
+    }
+
     if (close && !this.inline) {
       this.close();
     }

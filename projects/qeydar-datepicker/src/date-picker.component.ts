@@ -1,4 +1,4 @@
-import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject, AfterViewInit, ViewChildren, QueryList, NgZone, OnDestroy } from '@angular/core';
+import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject, AfterViewInit, ViewChildren, QueryList, NgZone, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { slideMotion } from './utils/animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
@@ -14,6 +14,7 @@ import { DateMaskDirective } from './utils/input-mask.directive';
 
 @Component({
   selector: 'qeydar-date-picker',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   template: `
     <div qeydarDatepickerStyles class="date-picker-wrapper" [class.date-picker-rtl]="rtl" [class.disabled]="disabled" [formGroup]="form">
@@ -591,7 +592,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (this.isOpen) {
       this.isOpen = false;
       this.onOpenChange.emit(false);
-      this.cdref.detectChanges();
+      this.cdref.markForCheck();
     }
   }
 
@@ -680,9 +681,13 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   }
 
   onPositionChange(position: ConnectedOverlayPositionChange): void {
-    this.currentPositionX = position.connectionPair.originX;
-    this.currentPositionY = position.connectionPair.originY;
-    this.cdref.detectChanges();
+    if (this.currentPositionX !== position.connectionPair.originX ||
+        this.currentPositionY !== position.connectionPair.originY)
+    {
+      this.currentPositionX = position.connectionPair.originX;
+      this.currentPositionY = position.connectionPair.originY;
+      this.cdref.markForCheck();
+    }
   }
 
   // ========== Input Event Handlers ==========
@@ -906,6 +911,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       this.lastEmittedValue = value;
       this.isInternalChange = false;
       this.updateDatePickerPopup();
+
+      this.cdref.markForCheck();
     } else {
       this.resetValues();
     }
