@@ -1,7 +1,8 @@
 import { Directive, ElementRef, HostListener, Input } from '@angular/core';
 
 @Directive({
-  selector: '[qeydar-dateMask]'
+  selector: '[qeydar-dateMask]',
+  standalone: true
 })
 export class DateMaskDirective {
   @Input('qeydar-dateMask') dateFormat: string = 'yyyy/MM/dd';

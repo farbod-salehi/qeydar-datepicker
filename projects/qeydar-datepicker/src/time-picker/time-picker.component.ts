@@ -11,7 +11,7 @@
  * - Custom styling
  */
 import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup } from '@angular/forms';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CdkOverlayOrigin, ConnectedOverlayPositionChange } from '@angular/cdk/overlay';
 import { slideMotion } from '../utils/animation/slide';
 import { Lang_Locale } from '../utils/models';
@@ -19,6 +19,8 @@ import { QeydarDatePickerService } from '../date-picker.service';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { TimeConfig, TimeFormat, TimeValueType } from '../utils/types';
 import { DEFAULT_DATE_PICKER_POSITIONS } from "../utils/overlay/overlay"
+import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
+import { DateMaskDirective } from '../utils/input-mask.directive';
 
 @Component({
   selector: 'qeydar-time-picker',
@@ -160,6 +162,14 @@ import { DEFAULT_DATE_PICKER_POSITIONS } from "../utils/overlay/overlay"
     </div>
   `,
   styleUrls: ['./time-picker.component.scss'],
+  standalone: true,
+  imports: [
+    NgIf,
+    NgFor,
+    ReactiveFormsModule,
+    NgTemplateOutlet,
+    DateMaskDirective
+  ],
   providers: [
     QeydarDatePickerService,
     {

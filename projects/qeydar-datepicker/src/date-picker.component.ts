@@ -1,18 +1,20 @@
 import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject, AfterViewInit, ViewChildren, QueryList, NgZone, OnDestroy } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { slideMotion } from './utils/animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
 import { CustomLabels, DateRange, Lang_Locale, RangeInputLabels } from './utils/models';
 import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.component';
-import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair, HorizontalConnectionPos, VerticalConnectionPos } from '@angular/cdk/overlay';
-import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS } from './utils/overlay/overlay';
-import { DOCUMENT } from '@angular/common';
+import { CdkOverlayOrigin, ConnectedOverlayPositionChange, ConnectionPositionPair, HorizontalConnectionPos, OverlayModule, VerticalConnectionPos } from '@angular/cdk/overlay';
+import { DATE_PICKER_POSITION_MAP, DEFAULT_DATE_PICKER_POSITIONS, NzConnectedOverlayDirective } from './utils/overlay/overlay';
+import { DOCUMENT, NgIf, NgTemplateOutlet } from '@angular/common';
 import { DestroyService, QeydarDatePickerService } from './date-picker.service';
 import { fromEvent, takeUntil } from 'rxjs';
 import { CalendarType, DatepickerMode, Placement, RangePartType, ValueFormat } from './utils/types';
+import { DateMaskDirective } from './utils/input-mask.directive';
 
 @Component({
   selector: 'qeydar-date-picker',
+  standalone: true,
   template: `
     <div qeydarDatepickerStyles class="date-picker-wrapper" [class.date-picker-rtl]="rtl" [class.disabled]="disabled" [formGroup]="form">
       <ng-container *ngIf="!isInline; else inlineMode">
@@ -247,6 +249,16 @@ import { CalendarType, DatepickerMode, Placement, RangePartType, ValueFormat } f
     "[class.qeydar-datepicker]": "true",
     "[class.qeydar-datepicker-rtl]": "rtl"
   },
+  imports: [
+    NgIf,
+    FormsModule,
+    ReactiveFormsModule,
+    OverlayModule,
+    NgTemplateOutlet,
+    NzConnectedOverlayDirective,
+    DateMaskDirective,
+    DatePickerPopupComponent
+  ],
   providers: [
     DestroyService,
     QeydarDatePickerService,

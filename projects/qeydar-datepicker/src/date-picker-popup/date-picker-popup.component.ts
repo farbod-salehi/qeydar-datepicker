@@ -5,9 +5,16 @@ import { DestroyService, QeydarDatePickerService } from '../date-picker.service'
 import { CalendarType, DatepickerMode } from '../utils/types';
 import { TimePickerComponent } from '../time-picker/time-picker.component';
 import { takeUntil } from 'rxjs';
+import { NgFor, NgIf } from '@angular/common';
 
 @Component({
   selector: 'qeydar-date-picker-popup',
+  standalone: true,
+  imports: [
+    NgIf,
+    NgFor,
+    TimePickerComponent
+  ],
   template: `
     <div class="date-picker-popup" [class.rtl]="rtl" [class]="cssClass" tabindex="-1">
       <div class="date-picker-content">

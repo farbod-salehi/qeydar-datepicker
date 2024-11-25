@@ -85,6 +85,7 @@ type Dimensions = Omit<ClientRect, 'x' | 'y' | 'toJSON'>;
 @Directive({
     selector: '[cdkConnectedOverlay][nzConnectedOverlay]',
     exportAs: 'nzConnectedOverlay',
+    standalone: true,
     providers: [DestroyService]
 })
 export class NzConnectedOverlayDirective {
