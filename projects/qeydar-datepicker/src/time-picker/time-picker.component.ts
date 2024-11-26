@@ -12,13 +12,13 @@
  */
 import { Component, ElementRef, forwardRef, Input, OnInit, Output, EventEmitter, ViewChild, OnDestroy, HostListener, ChangeDetectorRef, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { CdkOverlayOrigin, ConnectedOverlayPositionChange } from '@angular/cdk/overlay';
+import { CdkOverlayOrigin, ConnectedOverlayPositionChange, OverlayModule } from '@angular/cdk/overlay';
 import { slideMotion } from '../utils/animation/slide';
 import { Lang_Locale } from '../utils/models';
 import { QeydarDatePickerService } from '../date-picker.service';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { TimeConfig, TimeFormat, TimeValueType } from '../utils/types';
-import { DEFAULT_DATE_PICKER_POSITIONS } from "../utils/overlay/overlay"
+import { DEFAULT_DATE_PICKER_POSITIONS, NzConnectedOverlayDirective } from "../utils/overlay/overlay"
 import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
 import { DateMaskDirective } from '../utils/input-mask.directive';
 
@@ -169,7 +169,9 @@ import { DateMaskDirective } from '../utils/input-mask.directive';
     NgFor,
     ReactiveFormsModule,
     NgTemplateOutlet,
-    DateMaskDirective
+    DateMaskDirective,
+    OverlayModule,
+    NzConnectedOverlayDirective
   ],
   providers: [
     QeydarDatePickerService,

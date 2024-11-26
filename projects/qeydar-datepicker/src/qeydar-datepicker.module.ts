@@ -19,6 +19,6 @@ import { TimePickerComponent } from './time-picker/time-picker.component';
     DatePickerPopupComponent,
     DateMaskDirective,
     NzConnectedOverlayDirective,
-  ],
+  ]
 })
 export class QeydarDatePickerModule { }

@@ -27,7 +27,7 @@ import { CalendarType, DatepickerMode, RangeInputLabels, TimeValueType, ValueFor
   ]
 })
 export class AppComponent implements OnInit{
-  Version = '1.1.8';
+  Version = '1.1.9';
   isSidebarOpen = true;
   showPart = 'datepicker';
 

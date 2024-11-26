@@ -829,6 +829,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   handleChanges(changes: SimpleChanges): void {
     if (changes['calendarType']) {
       this.setDateAdapter();
+      this.weekDays = this.dateAdapter.getDayOfWeekNames('short');
     }
     
     if (changes['selectedDate'] || 
