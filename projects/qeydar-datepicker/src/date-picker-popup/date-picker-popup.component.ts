@@ -144,7 +144,7 @@ import { NgFor, NgIf } from '@angular/common';
         </div>
         <div class="footer-actions">
           <button *ngIf="showTimePicker" class="footer-button ok" (click)="onOkClick()">{{ lang.ok }}</button>
-          <button class="footer-button" (click)="onTodayClick()">{{ lang.today }}</button>
+          <button *ngIf="showToday" class="footer-button" (click)="onTodayClick()">{{ lang.today }}</button>
         </div>
       </div>
     </div>
