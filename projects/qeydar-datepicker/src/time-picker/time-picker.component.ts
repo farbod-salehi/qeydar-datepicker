@@ -241,12 +241,12 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   overlayPositions = [...DEFAULT_DATE_PICKER_POSITIONS];
 
   constructor(
-    private fb: FormBuilder,
-    private elementRef: ElementRef,
-    private cdref: ChangeDetectorRef,
-    private datePickerService: QeydarDatePickerService,
-    private jalaliAdapter: JalaliDateAdapter,
-    private gregorianAdapter: GregorianDateAdapter,
+    public fb: FormBuilder,
+    public elementRef: ElementRef,
+    public cdref: ChangeDetectorRef,
+    public datePickerService: QeydarDatePickerService,
+    public jalaliAdapter: JalaliDateAdapter,
+    public gregorianAdapter: GregorianDateAdapter,
   ) {
     this.dateAdapter = this.gregorianAdapter;
     this.initializeForm();
@@ -287,25 +287,25 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   // Initialization methods
-  private initializeForm(): void {
+  initializeForm(): void {
     this.form = this.fb.group({
       timeInput: ['']
     });
   }
 
-  private initializeLocale(): void {
+  initializeLocale(): void {
     this.lang = this.datePickerService.locale_en;
     this.selectedTime.period = this.lang.am;
     this.periods = [this.lang.am, this.lang.pm];
   }
 
-  private updateLocale(): void {
+  updateLocale(): void {
     this.lang = this.rtl ? this.datePickerService.locale_fa : this.datePickerService.locale_en;
     this.selectedTime.period = this.lang.am;
     this.periods = [this.lang.am, this.lang.pm];
   }
 
-  private setupInputSubscription(): void {
+  setupInputSubscription(): void {
     this.form.get('timeInput')?.valueChanges.subscribe(value => {
       if (!value) return;
 
@@ -319,21 +319,21 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   // Time management
-  private updateHourRange(): void {
+  updateHourRange(): void {
     const format = this.getTimeFormatFromDisplayFormat(this._displayFormat);
     this.hours = format === '12'
       ? Array.from({ length: 12 }, (_, i) => i + 1)
       : Array.from({ length: 24 }, (_, i) => i);
   }
 
-  private formatTime(date?: Date): string {
+  formatTime(date?: Date): string {
     if (!date && !this.dateAdapter) return '';
     
     const currentDate = date || this.updateDateFromSelection();
     return this.dateAdapter.format(currentDate, this._displayFormat);
   }
 
-  private parseTimeString(value: string | Date): void {
+  parseTimeString(value: string | Date): void {
     if (!this.dateAdapter) return;
 
     const date = value instanceof Date ? value : this.dateAdapter.parse(value, this._displayFormat);
@@ -351,10 +351,12 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
       second: seconds,
       period: hours >= 12 ? this.lang.pm : this.lang.am
     };
+
+    this.cdref.markForCheck();
   }
 
   // State management
-  private normalizeTime(date: Date): Date {
+  normalizeTime(date: Date): Date {
     if (!this.dateAdapter) return date;
 
     let normalizedDate = this.dateAdapter.clone(date);
@@ -386,7 +388,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     this.updateFromValue(val);
   }
 
-  private updateFromValue(value: Date | string | null): void {
+  updateFromValue(value: Date | string | null): void {
     if (!value) {
       this.resetSelection();
       return;
@@ -413,15 +415,18 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     } else {
       this.resetSelection();
     }
+
+    this.cdref.markForCheck();
   }
 
-  private resetSelection(): void {
+  resetSelection(): void {
     this.selectedTime = {
       hour: 0,
       minute: 0,
       second: 0,
       period: this.lang.am
     };
+    this.cdref.markForCheck();
   }
 
   writeValue(value: Date | string | null): void {
@@ -461,14 +466,14 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     }
   }
 
-  private handleTimeInput(): void {
+  handleTimeInput(): void {
     const currentValue = this.form.get('timeInput')?.value;
     if (currentValue) {
       this.validateAndUpdateTime(currentValue);
     }
   }
 
-  private handleDocumentClick = (event: MouseEvent): void => {
+  handleDocumentClick = (event: MouseEvent): void => {
     if (!this.elementRef.nativeElement.contains(event.target) && this.isOpen) {
       this.close();
       this.handleTimeInput();
@@ -581,7 +586,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   // Validation methods
-  private validateAndUpdateTime(value: string): void {
+  validateAndUpdateTime(value: string): void {
     if (!value || !this.dateAdapter) {
       this.updateTimeDisplay();
       return;
@@ -626,7 +631,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     return this.isTimeDisabled(this.createDateWithTime({ ...this.selectedTime, second }));
   }
 
-  private isTimeDisabled(testDate: Date): boolean {
+  isTimeDisabled(testDate: Date): boolean {
     if (!this.dateAdapter) return false;
 
     if (this.minTime) {
@@ -646,7 +651,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     return false;
   }
 
-  private isTimeValid(): boolean {
+  isTimeValid(): boolean {
     if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return true;
 
     const currentDate = this.updateDateFromSelection();
@@ -668,7 +673,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   // Helper methods
-  private createDateWithTime(config: TimeConfig): Date {
+  createDateWithTime(config: TimeConfig): Date {
     if (!this.dateAdapter) return new Date();
 
     let testHour = config.hour;
@@ -684,7 +689,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     return date;
   }
 
-  private updateDateFromSelection(): Date {
+  updateDateFromSelection(): Date {
     if (!this.dateAdapter) return new Date();
 
     let hours = this.selectedTime.hour;
@@ -704,13 +709,13 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     return date;
   }
 
-  private updateTimeDisplay(): void {
+  updateTimeDisplay(): void {
     if (this.form) {
       this.form.get('timeInput')?.setValue(this.formatTime(), { emitEvent: false });
     }
   }
 
-  private getTimeFormatFromDisplayFormat(format: string): '12' | '24' {
+  getTimeFormatFromDisplayFormat(format: string): '12' | '24' {
     // Check for 24-hour format indicators
     const has24HourFormat = /\bH{1,2}\b/.test(format);
     return has24HourFormat ? '24' : '12';
@@ -723,7 +728,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     this.showSeconds ? await this.scrollToSelectedItem(`s${this.selectedTime.second}`, 'auto') : '';
   }
 
-  private scrollToSelectedItem(id: string, behavior: ScrollBehavior = 'smooth'): Promise<boolean> {
+  scrollToSelectedItem(id: string, behavior: ScrollBehavior = 'smooth'): Promise<boolean> {
     this.cleanupTimeouts();
     return new Promise((resolve) => {
       if (!id) {
@@ -741,7 +746,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     });
   }
 
-  private cleanupTimeouts(): void {
+  cleanupTimeouts(): void {
     if (this.timeoutId !== null) {
       window.clearTimeout(this.timeoutId);
       this.timeoutId = null;
