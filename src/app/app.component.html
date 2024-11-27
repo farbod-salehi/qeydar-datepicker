@@ -103,15 +103,31 @@
                         </div>
                         <div class="form-group">
                             <label for="MinDate">Min Date:</label>
-                            <qeydar-date-picker [dir]="rtl? 'rtl': 'ltr'" [rtl]="rtl" [calendarType]="calendarType"
-                                [format]="'yyyy/MM/dd'" [(ngModel)]="minDate" [mode]="'day'" [showSidebar]="showSidebar"
-                                (ngModelChange)="updateCode()"></qeydar-date-picker>
+                            <qeydar-date-picker
+                                [dir]="rtl? 'rtl': 'ltr'"
+                                [rtl]="rtl"
+                                [calendarType]="calendarType"
+                                [format]="'yyyy/MM/dd'"
+                                [(ngModel)]="minDate"
+                                [mode]="'day'"
+                                [showSidebar]="showSidebar"
+                                [valueFormat]="valueFormat"
+                                (ngModelChange)="updateCode()"
+                            ></qeydar-date-picker>
                         </div>
                         <div class="form-group">
                             <label for="MaxDate">Max Date:</label>
-                            <qeydar-date-picker [dir]="rtl? 'rtl': 'ltr'" [rtl]="rtl" [calendarType]="calendarType"
-                                [format]="'yyyy/MM/dd'" [(ngModel)]="maxDate" [mode]="'day'" [showSidebar]="showSidebar"
-                                (ngModelChange)="updateCode()"></qeydar-date-picker>
+                            <qeydar-date-picker
+                                [dir]="rtl?'rtl':'ltr'"
+                                [rtl]="rtl"
+                                [calendarType]="calendarType"
+                                [format]="'yyyy/MM/dd'"
+                                [(ngModel)]="maxDate"
+                                [mode]="'day'"
+                                [showSidebar]="showSidebar"
+                                [valueFormat]="valueFormat"
+                                (ngModelChange)="updateCode()"
+                            ></qeydar-date-picker>
                         </div>
                         <div class="filters">
                             <div class="form-group">
@@ -177,6 +193,8 @@
                             [minDate]="minDate"
                             [mode]="mode"
                             [isInline]="isInline"
+                            [disabledDates]="disabledDates"
+                            [disabledDatesFilter]="disabledDatesFilter"
                             [(ngModel)]="selectedDate"
                             (ngModelChange)="onChange($event)"
                         >
@@ -251,6 +269,16 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label for="Disabled">Disabled:</label>
+                            <div class="switch-container">
+                                <input type="checkbox" [(ngModel)]="disabled" (change)="updateCode()"
+                                    class="switch-checkbox" id="Disabled" />
+                                <label class="switch-label" for="Disabled">
+                                    <span class="switch-button"></span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="box" [dir]="rtl? 'rtl': 'ltr'">
@@ -264,8 +292,10 @@
                             [valueType]="timeValueType"
                             [minTime]="minTime"
                             [maxTime]="maxTime"
-                            [(ngModel)]="selectedTime"
                             [inline]="isInline"
+                            [disabled]="disabled"
+                            [disabledTimesFilter]="disabledTimesFilter"
+                            [(ngModel)]="selectedTime"
                             (ngModelChange)="onChange($event)"
                         >
                         </qeydar-time-picker>

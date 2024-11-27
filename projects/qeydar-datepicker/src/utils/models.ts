@@ -31,6 +31,7 @@ export interface Lang_Locale {
     nextMonth: string;
     previousYear: string;
     nextYear: string;
+    selectTime: string;
     selectDate: string;
     selectMonth: string;
     selectYear: string;
@@ -57,6 +58,7 @@ export class lang_Fa implements Lang_Locale{
     nextMonth:string = "ماه بعد";
     previousYear:string = "سال قبل";
     nextYear:string = "سال بعد";
+    selectTime:string = "انتخاب زمان";
     selectDate:string = "انتخاب تاریخ";
     selectMonth:string = "انتخاب ماه";
     selectYear:string = "انتخاب سال";
@@ -83,6 +85,7 @@ export class lang_En implements Lang_Locale{
     nextMonth:string = "Next Month";
     previousYear:string = "Previous Year";
     nextYear:string = "Next Year";
+    selectTime:string = "Select time";
     selectDate:string = "Select date";
     selectMonth:string = "Select month";
     selectYear:string = "Select year";

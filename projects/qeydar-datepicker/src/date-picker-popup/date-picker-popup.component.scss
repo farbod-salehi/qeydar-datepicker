@@ -11,6 +11,7 @@ $weekday-color: #18396cB0;
 $shadow-color: rgba(0, 0, 0, 0.1);
 $today-border: #29b9ff;
 $today-dot: mediumpurple;
+$text-color-disabled: #aaa;
 
 :host {
   * {
@@ -202,6 +203,23 @@ $today-dot: mediumpurple;
         font-size: 36px;
         color: $today-dot;
       }
+    }
+
+    &.disabled {
+      color: $text-color-disabled;
+      background: #fafafa;
+      opacity: 1;
+    }
+
+    &.disabled::after {
+      content: '';
+      background: #fc678faa;
+      position: absolute;
+      right: 20%;
+      top: 45%;
+      width: 20px;
+      height: 1px;
+      transform: rotate(145deg);
     }
   }
 }

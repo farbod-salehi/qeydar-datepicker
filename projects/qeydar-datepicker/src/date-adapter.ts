@@ -16,6 +16,7 @@ import {
   isValid as isValidJalali,
   max as maxJalali,
   setYear as setYearJalali,
+  getDaysInMonth as getDaysInMonthJalali
 } from 'date-fns-jalali';
 
 import {
@@ -36,9 +37,11 @@ import {
   isValid as isValidGregorian,
   max as maxGregorian,
   setYear as setYearGregorian,
+  getDaysInMonth as getDaysInMonthGregorian,
   parseISO,
   startOfDay,
-  isEqual
+  isEqual,
+  addMinutes
 } from 'date-fns';
 import { Injectable } from '@angular/core';
 
@@ -80,6 +83,8 @@ export interface DateAdapter<D> {
   setHours(date: D, hours: number): D;
   setMinutes(date: D, minutes: number): D;
   setSeconds(date: D, seconds: number): D;
+  getDaysInMonth(date: D): number;
+  addMinutes(date: D, amount: number): D;
 }
 
 @Injectable({
@@ -289,6 +294,14 @@ export class JalaliDateAdapter implements DateAdapter<Date> {
     newDate.setSeconds(seconds);
     return newDate;
   }
+
+  getDaysInMonth(date: Date) {
+    return getDaysInMonthJalali(date);
+  }
+
+  addMinutes(date: Date, amount: number) {
+    return addMinutes(date, amount);
+  }
 }
 
 @Injectable({
@@ -493,5 +506,13 @@ export class GregorianDateAdapter implements DateAdapter<Date> {
     const newDate = this.clone(date);
     newDate.setSeconds(seconds);
     return newDate;
+  }
+
+  getDaysInMonth(date: Date) {
+    return getDaysInMonthGregorian(date);
+  }
+
+  addMinutes(date: Date, amount: number) {
+    return addMinutes(date, amount);
   }
 }

@@ -120,6 +120,10 @@ import { DateMaskDirective } from './utils/input-mask.directive';
             [showToday]="showToday"
             [showTimePicker]="showTimePicker"
             [timeDisplayFormat]="timeDisplayFormat"
+            [dateFormat]="extractDateFormat(format)"
+            [disabledDates]="disabledDates"
+            [disabledDatesFilter]="disabledDatesFilter"
+            [disabledTimesFilter]="disabledTimesFilter"
             (dateSelected)="onDateSelected($event)"
             (dateRangeSelected)="onDateRangeSelected($event)"
             (closePicker)="close()"
@@ -290,6 +294,9 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() showToday = false;
   @Input() valueFormat: ValueFormat = 'gregorian';
   @Input() disableInputMask = false;
+  @Input() disabledDates: Array<Date | string> = [];
+  @Input() disabledDatesFilter: (date: Date) => boolean;
+  @Input() disabledTimesFilter: (date: Date) => boolean;
   @Input() set minDate(date: Date | string | null) {
     if (date) {
       this._minDate = date;
@@ -353,6 +360,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   private _maxDate: any;
   private _format = 'yyyy/MM/dd';
 
+  get valueAdapter() {
+    return this.valueFormat == 'jalali'? this.jalali: this.gregorian;
+  }
+
   constructor(
     public fb: FormBuilder,
     public elementRef: ElementRef,
@@ -380,8 +391,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   ngAfterViewInit(): void {
     this.setupAfterViewInit();
-    this._minDate = this.dateAdapter?.parse(this._minDate,this.format);
-    this._maxDate = this.dateAdapter?.parse(this._maxDate,this.format);
+    this._minDate = this.valueAdapter?.parse(this._minDate,this.extractDateFormat(this.format));
+    this._maxDate = this.valueAdapter?.parse(this._maxDate,this.extractDateFormat(this.format));
   }
 
   ngOnDestroy(): void {
@@ -438,8 +449,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       this.dpService.locale = this.lang;
     }
     if (changes['minDate'] || changes['maxDate']) {
-      this._minDate = this.dateAdapter?.parse(this._minDate,this.format);
-      this._maxDate = this.dateAdapter?.parse(this._maxDate,this.format);
+      this._minDate = this.valueAdapter?.parse(this._minDate,this.extractDateFormat(this.format));
+      this._maxDate = this.valueAdapter?.parse(this._maxDate,this.extractDateFormat(this.format));
       this.form.updateValueAndValidity();
     }
     if (changes['mode'] || changes['isRange']) {
@@ -640,13 +651,70 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
 
   // ========== Date Validation Methods ==========
   clampDate(date: Date): Date {
-    if (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) {
+    if (!date) return date;
+
+    let adjustedDate = this.dateAdapter.clone(date);
+    if (this.isDateDisabled(adjustedDate)) {
+      // Find the nearest enabled date
+      let nextDate = this.dateAdapter.addDays(adjustedDate, 1);
+      let prevDate = this.dateAdapter.addDays(adjustedDate, -1);
+      
+      while (this.isDateDisabled(nextDate) && this.isDateDisabled(prevDate)) {
+        nextDate = this.dateAdapter.addDays(nextDate, 1);
+        prevDate = this.dateAdapter.addDays(prevDate, -1);
+      }
+      
+      // Return the first non-disabled date found
+      if (!this.isDateDisabled(nextDate)) {
+        adjustedDate = nextDate;
+      } else if (!this.isDateDisabled(prevDate)) {
+        adjustedDate = prevDate;
+      }
+    }
+
+    if (this.minDate && this.dateAdapter.isBefore(adjustedDate, this.minDate)) {
       return this.minDate;
     }
-    if (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate)) {
+    if (this.maxDate && this.dateAdapter.isAfter(adjustedDate, this.maxDate)) {
       return this.maxDate;
     }
-    return date;
+
+    // Preserve the original time if format includes time
+    if (this.hasTimeComponent(this.format)) {
+      adjustedDate.setHours(date.getHours());
+      adjustedDate.setMinutes(date.getMinutes());
+      adjustedDate.setSeconds(date.getSeconds());
+    }
+
+    return adjustedDate;
+  }
+
+  parseDisabledDates(): Date[] {
+    return this.disabledDates.map(date => {
+      if (date instanceof Date) {
+        return this.dateAdapter.startOfDay(date);
+      }
+      const parsedDate = this.dateAdapter.parse(date, this.extractDateFormat(this.format));
+      return parsedDate || null;
+    }).filter(date => date !== null) as Date[];
+  }
+  
+  isDateDisabled(date: Date): boolean {
+    if (!date) return false;
+  
+    const dateToCheck = this.dateAdapter.startOfDay(date);
+    // Check if date is in disabled dates array
+    const parsedDisabledDates = this.parseDisabledDates();
+    const isDisabledDate = parsedDisabledDates.some(disabledDate => 
+      this.dateAdapter.isSameDay(dateToCheck, disabledDate)
+    );
+  
+    // Check custom filter function if provided
+    const isFilterDisabled = this.disabledDatesFilter ? 
+      this.disabledDatesFilter(dateToCheck) : 
+      false;
+  
+    return isDisabledDate || isFilterDisabled;
   }
 
   // ========== Date Validation Methods (continued) ==========
@@ -982,29 +1050,27 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   parseIncomingValue(value: any): Date | null {
     if (!value) return null;
     if (value instanceof Date) return value;
-
-    // Try parsing with both adapters
     let parsedDate: Date | null = null;
 
-    // First try with the calendar type's adapter
-    // parsedDate = this.dateAdapter.parse(value, this.format);
-    // if (parsedDate) return parsedDate;
-
-    // Then try with the alternate adapter
-    const alternateAdapter = this.valueFormat === 'jalali' ? this.jalali: this.gregorian;
-    parsedDate = alternateAdapter.parse(value, this.format);
+    // try with value adapter
+    parsedDate = this.valueAdapter.parse(value, this.format);
     if (parsedDate) return parsedDate;
 
     return null;
   }
 
   // ========== Time Methods ==========
-  private hasTimeComponent(format: string): boolean {
+  hasTimeComponent(format: string): boolean {
     return /[Hh]|[m]|[s]|[a]/g.test(format);
   }
 
-  private extractTimeFormat(format: string): string {
+  extractTimeFormat(format: string): string {
     const timeMatch = format.match(/[Hh]{1,2}:mm(?::ss)?(?:\s*[aA])?/);
     return timeMatch ? timeMatch[0] : 'HH:mm';
+  }
+
+  extractDateFormat(format: string): string {
+    const dateFormatMatch = format.match(/[yMd\/.-]+/);
+    return dateFormatMatch ? dateFormatMatch[0] : '';
   }
 }

@@ -29,17 +29,19 @@ import { DateMaskDirective } from '../utils/input-mask.directive';
     <div class="time-picker-wrapper" [formGroup]="form">
       <!-- Regular input mode -->
       <ng-container *ngIf="!inline">
-        <div class="input-wrapper" [class.focus]="isOpen">
+        <div class="input-wrapper" [class.focus]="isOpen" [class.disabled]="disabled">
           <input
             #timePickerInput
             [qeydar-dateMask]="displayFormat"
             [disableInputMask]="disableInputMask"
+            [class.disabled]="disabled"
             type="text"
             class="time-picker-input"
             [class.focus]="isOpen"
             formControlName="timeInput"
             (focus)="onFocusInput()"
-            [placeholder]="placeholder || 'Select time'"
+            [placeholder]="placeholder"
+            [attr.disabled]="disabled? 'disabled':null"
           >
           <button *ngIf="showIcon" class="time-button" (click)="toggleTimePicker($event)" tabindex="-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
@@ -76,6 +78,7 @@ import { DateMaskDirective } from '../utils/input-mask.directive';
           [class]="'time-picker-popup ' + cssClass"
           [@slideMotion]="'enter'" 
           [class.inline]="inline"
+          [class.disabled]="disabled"
           style="position: relative"
           (click)="$event.stopPropagation()"
         >
@@ -187,7 +190,7 @@ import { DateMaskDirective } from '../utils/input-mask.directive';
   animations: [slideMotion]
 })
 export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDestroy, OnChanges {
-  @Input() placeholder?: string = 'Select time';
+  @Input() placeholder?: string;
   @Input() rtl = false;
   @Input() placement: 'left' | 'right' = 'right';
   @Input() minTime?: string;
@@ -199,6 +202,9 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   @Input() dateAdapter: DateAdapter<Date>;
   @Input() inline = false;
   @Input() disableInputMask = false;
+  @Input() disabled = false;
+  @Input() disabledTimesFilter: (date: Date) => boolean;
+  @Input() allowEmpty = true;
   @Input() set displayFormat(value: string) {
     this._displayFormat = value;
     this.showSeconds = value.toLowerCase().includes('s');
@@ -303,6 +309,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     this.lang = this.rtl ? this.datePickerService.locale_fa : this.datePickerService.locale_en;
     this.selectedTime.period = this.lang.am;
     this.periods = [this.lang.am, this.lang.pm];
+    this.placeholder = this.lang.selectTime;
   }
 
   setupInputSubscription(): void {
@@ -353,29 +360,6 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     };
 
     this.cdref.markForCheck();
-  }
-
-  // State management
-  normalizeTime(date: Date): Date {
-    if (!this.dateAdapter) return date;
-
-    let normalizedDate = this.dateAdapter.clone(date);
-
-    if (this.minTime) {
-      const minDate = this.dateAdapter.parse(this.minTime, this._displayFormat);
-      if (minDate && this.dateAdapter.isBefore(normalizedDate, minDate)) {
-        normalizedDate = minDate;
-      }
-    }
-
-    if (this.maxTime) {
-      const maxDate = this.dateAdapter.parse(this.maxTime, this._displayFormat);
-      if (maxDate && this.dateAdapter.isAfter(normalizedDate, maxDate)) {
-        normalizedDate = maxDate;
-      }
-    }
-
-    return normalizedDate;
   }
 
   // Value accessors and form control
@@ -468,7 +452,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
   handleTimeInput(): void {
     const currentValue = this.form.get('timeInput')?.value;
-    if (currentValue) {
+    if (currentValue || (!currentValue && !this.allowEmpty)) {
       this.validateAndUpdateTime(currentValue);
     }
   }
@@ -493,7 +477,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
   // Picker operations
   open(): void {
-    if (this.inline) return;
+    if (this.inline || this.disabled) return;
 
     const wasOpen = this.isOpen;
     this.isOpen = true;
@@ -564,16 +548,19 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   save(close = true): void {
-    const outputValue = this.valueType === 'date' 
-      ? this.updateDateFromSelection() 
-      : this.formatTime();
+    const date = this.updateDateFromSelection();
+    const { isValid, normalizedDate } = this.validateAndNormalizeTime(date);
 
-    if (!this.isTimeValid()) return;
+    if (!isValid || !normalizedDate) return;
+
+    const outputValue = this.valueType === 'date' 
+      ? normalizedDate 
+      : this.formatTime(normalizedDate);
 
     const valueChanged = JSON.stringify(this._value) !== JSON.stringify(outputValue);
     if (valueChanged) {
       this._value = outputValue;
-      this.form.get('timeInput')?.setValue(this.formatTime(), { emitEvent: false });
+      this.form.get('timeInput')?.setValue(this.formatTime(normalizedDate), { emitEvent: false });
       
       this.onChange(outputValue);
       this.timeChange.emit(outputValue);
@@ -591,7 +578,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
       this.updateTimeDisplay();
       return;
     }
-
+  
     try {
       const parsedDate = this.dateAdapter.parse(value, this._displayFormat);
       if (!parsedDate) {
@@ -599,17 +586,16 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
         return;
       }
 
-      const normalizedDate = this.normalizeTime(parsedDate);
+      const { isValid, normalizedDate } = this.validateAndNormalizeTime(parsedDate);
       const formattedTime = this.dateAdapter.format(normalizedDate, this._displayFormat);
-      
       this.form.get('timeInput')?.setValue(formattedTime, { emitEvent: false });
       this.parseTimeString(normalizedDate);
-
+  
       const outputValue = this.valueType === 'date' ? normalizedDate : formattedTime;
       this._value = outputValue;
       this.onChange(outputValue);
       this.timeChange.emit(outputValue);
-
+  
     } catch (error) {
       console.error('Error normalizing time:', error);
       this.updateTimeDisplay();
@@ -617,18 +603,20 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   isHourDisabled(hour: number): boolean {
-    if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return false;
-    return this.isTimeDisabled(this.createDateWithTime({ ...this.selectedTime, hour }));
+    if (!this.dateAdapter) return false;
+    return this.isFullHourDisabled(hour);
   }
 
   isMinuteDisabled(minute: number): boolean {
-    if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return false;
-    return this.isTimeDisabled(this.createDateWithTime({ ...this.selectedTime, minute }));
+    if (!this.dateAdapter) return false;
+    return this.isFullMinuteDisabled(minute);
   }
 
   isSecondDisabled(second: number): boolean {
-    if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return false;
-    return this.isTimeDisabled(this.createDateWithTime({ ...this.selectedTime, second }));
+    if (!this.dateAdapter) return false;
+    const testConfig = { ...this.selectedTime, second };
+    const testDate = this.createDateWithTime(testConfig);
+    return this.isTimeDisabled(testDate);
   }
 
   isTimeDisabled(testDate: Date): boolean {
@@ -648,28 +636,85 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
       }
     }
 
-    return false;
+    return this.disabledTimesFilter ? this.disabledTimesFilter(testDate) : false;
   }
 
-  isTimeValid(): boolean {
-    if (!this.dateAdapter || (!this.minTime && !this.maxTime)) return true;
-
-    const currentDate = this.updateDateFromSelection();
-    if (this.minTime) {
-      const minDate = this.dateAdapter.parse(this.minTime, this._displayFormat);
-      if (minDate && this.dateAdapter.isBefore(currentDate, minDate)) {
-        return false;
+  validateAndNormalizeTime(date: Date): { isValid: boolean; normalizedDate: Date | null } {
+    if (!this.dateAdapter) {
+      return { isValid: false, normalizedDate: null };
+    }
+  
+    let isValid = true;
+    // Clone the date to avoid modifying the original
+    let normalizedDate = this.dateAdapter.clone(date);
+    if (this.isTimeDisabled(normalizedDate)) {
+      isValid = false;
+      // Try to find nearest valid time (check next and previous 48 intervals of 30 minutes)
+      for (let i = 1; i <= 48; i++) {
+        const nextTime = this.dateAdapter.addMinutes(date, i * 30);
+        const prevTime = this.dateAdapter.addMinutes(date, -i * 30);
+  
+        if (!this.isTimeDisabled(nextTime)) {
+          normalizedDate = nextTime;
+          break;
+        }
+        if (!this.isTimeDisabled(prevTime)) {
+          normalizedDate = prevTime;
+          break;
+        }
+      }
+  
+      // If still disabled after trying to find valid time
+      if (this.isTimeDisabled(normalizedDate)) {
+        return { isValid: false, normalizedDate: null };
       }
     }
+  
+    return { isValid: isValid, normalizedDate };
+  }
 
-    if (this.maxTime) {
-      const maxDate = this.dateAdapter.parse(this.maxTime, this._displayFormat);
-      if (maxDate && this.dateAdapter.isAfter(currentDate, maxDate)) {
-        return false;
+  private isFullHourDisabled(hour: number): boolean {
+    for (let minute = 0; minute < 60; minute++) {
+      const testConfig = {
+        ...this.selectedTime,
+        hour,
+        minute,
+        second: 0
+      };
+      const testDate = this.createDateWithTime(testConfig);
+      
+      if (!this.isTimeDisabled(testDate)) {
+        return false; // If any minute is enabled, hour is not fully disabled
       }
     }
+    return true; // All minutes in hour are disabled
+  }
 
-    return true;
+  private isFullMinuteDisabled(minute: number): boolean {
+    if (!this.showSeconds) {
+      const testConfig = {
+        ...this.selectedTime,
+        minute,
+        second: 0
+      };
+      const testDate = this.createDateWithTime(testConfig);
+      return this.isTimeDisabled(testDate);
+    }
+  
+    // If showing seconds, check each second
+    for (let second = 0; second < 60; second++) {
+      const testConfig = {
+        ...this.selectedTime,
+        minute,
+        second
+      };
+      const testDate = this.createDateWithTime(testConfig);
+      
+      if (!this.isTimeDisabled(testDate)) {
+        return false; // If any second is enabled, minute is not fully disabled
+      }
+    }
+    return true; // All seconds in minute are disabled
   }
 
   // Helper methods

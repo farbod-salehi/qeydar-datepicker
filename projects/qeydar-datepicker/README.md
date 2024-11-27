@@ -37,6 +37,7 @@ This package includes two main components:
 - 📐 Multiple placement options
 - 🔄 Value format flexibility (string/Date object)
 - 🎯 Today button support
+- 🚫 Disabled dates support with custom filtering
 
 ### TimePicker
 - ⏰ 12/24 hour format support
@@ -46,6 +47,7 @@ This package includes two main components:
 - 🌐 Multilingual AM/PM
 - 📍 Inline display mode
 - 🔄 Date adapter integration
+- 🚫 Disabled times support with custom filtering
 
 ## Installation
 
@@ -196,6 +198,33 @@ export class AppComponent {
 })
 ```
 
+### Disabled Dates
+```typescript
+@Component({
+  template: `
+    <qeydar-date-picker
+      [(ngModel)]="selectedDate"
+      [disabledDates]="disabledDates"
+      [disabledDatesFilter]="disabledDatesFilter"
+    ></qeydar-date-picker>
+  `
+})
+export class AppComponent {
+  // These will disable the entire day
+  disabledDates = [
+    new Date(2024, 0, 1),  // Jan 1, 2024
+    new Date(2024, 11, 25), // Dec 25, 2024
+    '2024/01/15'  // Jan 15, 2024
+  ];
+
+  // This will disable specific days advanced
+  disabledDatesFilter = (date: Date) => {
+    const day = date.getDay();
+    return day === 0 || day === 6; // Disable weekends
+  };
+}
+```
+
 ## TimePicker Usage
 
 The TimePicker is a separate component for time selection:
@@ -249,29 +278,59 @@ export class AppComponent {
 }
 ```
 
+### Disabled Times
+```typescript
+@Component({
+  template: `
+    <qeydar-time-picker
+      [(ngModel)]="selectedTime"
+      [disabledTimesFilter]="disabledTimesFilter"
+    ></qeydar-time-picker>
+  `
+})
+export class AppComponent {
+  // Disable lunch hours (12:00-13:00)
+  disabledTimesFilter = (date: Date) => {
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    
+    // Disable specific hour
+    if (hour === 12) return true;
+    
+    // Disable specific minutes
+    if (minute === 45) return true;
+    
+    return false;
+  }
+}
+```
+
 ## API Reference
 
 ### DatePicker Inputs
 | Input             | Type                     | Default       | Description |
 |-------------------|--------------------------|---------------|-------------|
 | rtl               | boolean                  | false         | Right-to-left mode |
-| mode              | 'day' \| 'month' \| 'year' | 'day'      | Selection mode |
+| mode              | 'day' \| 'month' \| 'year' | 'day'       | Selection mode |
 | isRange           | boolean                  | false         | Enable range selection |
 | format            | string                   | 'yyyy/MM/dd'  | Date format |
-| calendarType      | 'jalali' \| 'gregorian'   | 'gregorian'    | Calendar type |
+| calendarType      | 'jalali' \| 'gregorian'  | 'gregorian'   | Calendar type |
 | minDate           | Date                     | null          | Minimum selectable date |
 | maxDate           | Date                     | null          | Maximum selectable date |
 | cssClass          | string                   | ''            | Custom CSS class |
 | footerDescription | string                   | ''            | Footer description text |
-| rangeInputLabels  | RangeInputLabels        | undefined     | Labels for range inputs |
+| rangeInputLabels  | RangeInputLabels         | undefined     | Labels for range inputs |
 | inputLabel        | string                   | undefined     | Label for single input |
 | placement         | Placement                | 'bottomLeft'  | Dropdown placement |
 | disabled          | boolean                  | false         | Disable the datepicker |
 | isInline          | boolean                  | false         | Show calendar inline |
 | showSidebar       | boolean                  | true          | Show sidebar with months/years |
 | showToday         | boolean                  | false         | Highlight today's date |
-| valueFormat      | 'gregorian' \| 'jalali' \| 'date' | 'gregorian' | Output value format |
+| valueFormat       | 'gregorian' \| 'jalali' \| 'date' | 'gregorian' | Output value format |
 | disableInputMask  | boolean                  | false         | To disable input mask |
+| disabledDates     | Arrar<Date || string>    | undefined     | Array of Date and string to disable the entire day |
+| disabledDatesFilter | (date: Date) => boolean| undefined     | Function to determine if a date should be disabled |
+| disabledTimesFilter| (date: Date) => boolean | undefined     | Function to determine if a time of date should be disabled |
 
 ### DatePicker Outputs
 | Output        | Type                  | Description |
@@ -298,6 +357,9 @@ export class AppComponent {
 | inline         | boolean            | false        | Show time picker inline (without popup) |
 | dateAdapter    | DateAdapter<Date>  | undefined    | Custom date adapter for time manipulation |
 | disableInputMask  | boolean         | false        | To disable input mask |
+| disabledTimesFilter| (date: Date) => boolean| undefined| Function to determine if a time should be disabled |
+| disabled           | boolean                | false   | Disable the time picker |
+| allowEmpty         | boolean                | true    | Allow empty value |
 
 ### TimePicker Outputs
 

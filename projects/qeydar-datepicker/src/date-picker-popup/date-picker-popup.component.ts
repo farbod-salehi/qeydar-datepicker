@@ -92,6 +92,7 @@ import { NgFor, NgIf } from '@angular/common';
                 [class.range-start]="isRangeStart(day)"
                 [class.range-end]="isRangeEnd(day)"
                 [class.today]="isToday(day)"
+                [class.disabled]="isDateDisabled(day)"
                 [disabled]="isDateDisabled(day)"
                 (click)="selectDate(day)"
                 (mouseenter)="onMouseEnter(day,$event)"
@@ -133,6 +134,7 @@ import { NgFor, NgIf } from '@angular/common';
             [valueType]="'date'"
             [displayFormat]="timeDisplayFormat"
             [inline]="true"
+            [disabledTimesFilter]="disabledTimesFilter"
             [cssClass]="'embedded-time-picker'"
             (timeChange)="onTimeChange($event)"
           ></qeydar-time-picker>
@@ -170,6 +172,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() showToday: boolean;
   @Input() showTimePicker = false;
   @Input() timeDisplayFormat = 'HH:mm';
+  @Input() dateFormat: string;
+  @Input() disabledDates: Array<Date | string> = [];
+  @Input() disabledDatesFilter: (date: Date) => boolean;
+  @Input() disabledTimesFilter: (date: Date) => boolean;
 
   // ========== Output Properties ==========
   @Output() dateSelected = new EventEmitter<Date>();
@@ -373,8 +379,6 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
             this.timePicker.scrollToTime();
           });
       } else {
-        console.log(date);
-        
         this.timePicker.updateFromDate(date || this.selectedDate);
         this.timePicker.scrollToTime();
       }
@@ -603,15 +607,44 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
 
   // ========== Disabled State Methods ==========
   isDateDisabled(date: Date): boolean {
-    return (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) ||
-           (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate));
+    if (
+      (this.minDate && this.dateAdapter.isBefore(date, this.minDate)) ||
+      (this.maxDate && this.dateAdapter.isAfter(date, this.maxDate))
+    ) {
+      return true;
+    }
+
+    // Check if date is in disabled dates array
+    const parsedDisabledDates = this.parseDisabledDates();
+    const isDisabledDate = parsedDisabledDates.some(disabledDate => 
+      this.dateAdapter.isSameDay(date, disabledDate)
+    );
+
+    // Check custom filter function if provided
+    const isFilterDisabled = this.disabledDatesFilter ? 
+      this.disabledDatesFilter(date) : 
+      false;
+
+    return isDisabledDate || isFilterDisabled;
   }
 
   isMonthDisabled(month: number): boolean {
     const year = this.dateAdapter.getYear(this.currentDate);
     const startOfMonth = this.dateAdapter.createDate(year, month - 1, 1);
-    const endOfMonth = this.dateAdapter.endOfMonth(startOfMonth);
-    return this.isDateDisabled(startOfMonth) && this.isDateDisabled(endOfMonth);
+    
+    // Check if all days in month are disabled
+    const daysInMonth = this.dateAdapter.getDaysInMonth(startOfMonth);
+    let allDaysDisabled = true;
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = this.dateAdapter.createDate(year, month - 1, day);
+      if (!this.isDateDisabled(date)) {
+        allDaysDisabled = false;
+        break;
+      }
+    }
+    
+    return allDaysDisabled;
   }
 
   isYearDisabled(year: number): boolean {
@@ -662,6 +695,16 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       default:
         return false;
     }
+  }
+
+  parseDisabledDates(): Date[] {
+    return this.disabledDates.map(date => {
+      if (date instanceof Date) {
+        return this.dateAdapter.startOfDay(date);
+      }
+      const parsedDate = this.dateAdapter.parse(date, this.dateFormat);
+      return parsedDate || null;
+    }).filter(date => date !== null) as Date[];
   }
 
   // ========== Event Handlers ==========
