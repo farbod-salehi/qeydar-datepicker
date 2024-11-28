@@ -53,41 +53,12 @@ export class AppComponent implements OnInit{
   maxDate: Date | string;
   minDate: Date | string;
   showIcon: boolean = true;
+  allowEmpty: boolean = true;
   timeValueType: TimeValueType = 'string';
   timeDisplayFormat: string = 'HH:mm:ss';
   maxTime: string;
   minTime: string;
-  disabledDates = [
-    new Date(),
-    '1403/09/05',
-    '1403/09/07'
-  ];
-  disabledDatesFilter = (date: Date) => {
-    const day = date.getFullYear();
-    let month = getMonth(date);
-    let year = this.jalali.getYear(date);
 
-    return year === 1406 || year === 1407; // Disable weekends
-  };
-  disabledTimes = [
-    new Date(2024, 0, 1, 12, 0),  // Disable 12:00
-    new Date(2024, 0, 1, 13, 30),  // Disable 13:30
-    '14:00',  // Disable 14:00
-    '15:30:00'  // Disable 15:30:00
-  ];
-  disabledTimesFilter = (date: Date) => {
-    const hour = date.getHours();
-    const minute = date.getMinutes();
-    
-    // Disable lunch hours (12:00-13:00)
-    if (hour === 8) return true;
-    
-    // Disable every :45 minute
-    if (minute === 45) return true;
-    
-    return false;
-  };
-  
   // examples
   demoCode: string;
 
@@ -151,6 +122,7 @@ export class AppComponent implements OnInit{
         isInline: boolean = ${this.isInline};
         minDate: Date | string = ${this.minDate};
         maxDate: Date | string = ${this.maxDate};
+        allowEmpty: boolean = ${this.allowEmpty};
     `;
 
     this.demoCode = `

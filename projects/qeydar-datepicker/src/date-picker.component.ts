@@ -20,7 +20,7 @@ import { DateMaskDirective } from './utils/input-mask.directive';
     <div qeydarDatepickerStyles class="date-picker-wrapper" [class.date-picker-rtl]="rtl" [class.disabled]="disabled" [formGroup]="form">
       <ng-container *ngIf="!isInline; else inlineMode">
         <ng-container *ngIf="!isRange; else rangeMode">
-          <div class="input-container">
+          <div class="input-container" [class.rtl]>
             <label for="dateInput" *ngIf="inputLabel">{{ inputLabel }}</label>
             <input
               #datePickerInput
@@ -243,7 +243,10 @@ import { DateMaskDirective } from './utils/input-mask.directive';
       display: flex;
       flex-direction: column;
       gap: 3px;
-      color: #444
+      color: #444 
+    }
+    .input-container.rtl {
+      direction: rtl;
     }
     // rtl
     :dir(rtl) .range-separator{
@@ -655,23 +658,6 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (!date) return date;
 
     let adjustedDate = this.dateAdapter.clone(date);
-    if (this.isDateDisabled(adjustedDate)) {
-      // Find the nearest enabled date
-      let nextDate = this.dateAdapter.addDays(adjustedDate, 1);
-      let prevDate = this.dateAdapter.addDays(adjustedDate, -1);
-      
-      while (this.isDateDisabled(nextDate) && this.isDateDisabled(prevDate)) {
-        nextDate = this.dateAdapter.addDays(nextDate, 1);
-        prevDate = this.dateAdapter.addDays(prevDate, -1);
-      }
-      
-      // Return the first non-disabled date found
-      if (!this.isDateDisabled(nextDate)) {
-        adjustedDate = nextDate;
-      } else if (!this.isDateDisabled(prevDate)) {
-        adjustedDate = prevDate;
-      }
-    }
 
     if (this.minDate && this.dateAdapter.isBefore(adjustedDate, this.minDate)) {
       return this.minDate;
@@ -680,14 +666,97 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       return this.maxDate;
     }
 
+    if (this.isDateDisabled(adjustedDate)) {
+      // Find the nearest enabled date
+      adjustedDate = this.findNearestValidDate(adjustedDate);
+    }
+
     // Preserve the original time if format includes time
+    adjustedDate = this.clampDateTime(adjustedDate, date);
+
+    return adjustedDate;
+  }
+
+  clampDateTime(adjustedDate: Date, date: Date) {
     if (this.hasTimeComponent(this.format)) {
       adjustedDate.setHours(date.getHours());
       adjustedDate.setMinutes(date.getMinutes());
       adjustedDate.setSeconds(date.getSeconds());
+      let { normalizedDate } = this.validateAndNormalizeTime(adjustedDate);
+      adjustedDate = normalizedDate;
+    }
+    return adjustedDate;
+  }
+
+  findNearestValidDate(date: Date) {
+    let nextDate = this.dateAdapter.addDays(date, 1);
+    let prevDate = this.dateAdapter.addDays(date, -1);
+
+    while (this.isDateDisabled(nextDate) && this.isDateDisabled(prevDate)) {
+      nextDate = this.dateAdapter.addDays(nextDate, 1);
+      prevDate = this.dateAdapter.addDays(prevDate, -1);
     }
 
-    return adjustedDate;
+    // Return the first non-disabled date found
+    if (!this.isDateDisabled(nextDate)) {
+      date = nextDate;
+    } else if (!this.isDateDisabled(prevDate)) {
+      date = prevDate;
+    }
+    return date;
+  }
+
+  validateAndNormalizeTime(date: Date): { isValid: boolean; normalizedDate: Date | null } {
+    if (!this.dateAdapter) {
+      return { isValid: false, normalizedDate: null };
+    }
+ 
+    let isValid = true;
+    let normalizedDate = this.dateAdapter.clone(date);
+
+    if (this.isTimeDisabled(normalizedDate)) {
+      isValid = false;
+
+      // Get start and end of the current day
+      const startOfDay = this.dateAdapter.clone(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = this.dateAdapter.clone(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Try to find nearest valid time within the same day
+      const currentMinutes = date.getHours() * 60 + date.getMinutes();
+      const maxForwardMinutes = (24 * 60) - currentMinutes;
+      let validTimeFound = false;
+
+      // Check forward
+      for (let i = 1; i <= maxForwardMinutes; i++) {
+        const nextTime = this.dateAdapter.clone(date);
+        nextTime.setHours(Math.floor((currentMinutes + i) / 60), (currentMinutes + i) % 60, 0);
+        if (nextTime.getTime() <= endOfDay.getTime() && !this.isTimeDisabled(nextTime)) {
+          normalizedDate = nextTime;
+          validTimeFound = true;
+          break;
+        }
+      }
+
+      // Check backward
+      if (!validTimeFound)
+        for (let i = 1; i < currentMinutes; i++) {
+          const prevTime = this.dateAdapter.clone(date);
+          prevTime.setHours(Math.floor((currentMinutes - i) / 60), (currentMinutes - i) % 60, 0);
+          if (prevTime.getTime() >= startOfDay.getTime() && !this.isTimeDisabled(prevTime)) {
+            normalizedDate = prevTime;
+            break;
+          }
+        }
+
+      // If no valid time found in the current day, set to start of day
+      if (this.isTimeDisabled(normalizedDate)) {
+        normalizedDate = startOfDay;
+      }
+    }
+ 
+    return { isValid: isValid, normalizedDate };
   }
 
   parseDisabledDates(): Date[] {
@@ -716,6 +785,10 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
       false;
   
     return isDisabledDate || isFilterDisabled;
+  }
+
+  isTimeDisabled(date: Date) {
+    return this.disabledTimesFilter ? this.disabledTimesFilter(date) : false;
   }
 
   // ========== Date Validation Methods (continued) ==========

@@ -216,6 +216,15 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   get displayFormat(): string {
     return this._displayFormat;
   }
+  @Input() set selectedDate(date: Date){
+    if (date) {
+      this._selectedDate = date;
+    }
+  }
+  get selectedDate() : Date {
+    return this._selectedDate;
+  }
+  
 
   @Output() timeChange = new EventEmitter<Date | string>();
   @Output() openChange = new EventEmitter<boolean>();
@@ -226,6 +235,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   timeFormat: TimeFormat = '12';
   private _displayFormat = 'hh:mm a';
   private _value: string | Date | null = null;
+  private _selectedDate: Date = new Date();
   private onChange: (value: any) => void = () => {};
   private onTouched: () => void = () => {};
   private timeoutId: number | null = null;
@@ -264,7 +274,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     this.updateHourRange();
     this.origin = new CdkOverlayOrigin(this.elementRef);
     this.setupInputSubscription();
-    this.value = new Date();
+    this.value = this.selectedDate;
 
     // Only add document click listener for non-inline mode
     if (!this.inline) {
@@ -422,7 +432,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
     if (value instanceof Date) {
       this.value = value;
     } else if (value.trim()) {
-      const date = new Date(value);
+      const date = this.selectedDate;
       this.value = !isNaN(date.getTime()) && this.valueType === 'date' ? date : value;
       this.parseTimeString(value);
     }
@@ -534,7 +544,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   selectNow(): void {
-    const now = new Date();
+    const now = this.selectedDate;
     this.selectedTime = {
       hour: now.getHours(),
       minute: now.getMinutes(),
@@ -719,7 +729,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
   // Helper methods
   createDateWithTime(config: TimeConfig): Date {
-    if (!this.dateAdapter) return new Date();
+    if (!this.dateAdapter) return this.selectedDate;
 
     let testHour = config.hour;
     if (this.timeFormat === '12') {
@@ -727,7 +737,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
       if (config.period === this.lang.am && testHour === 12) testHour = 0;
     }
 
-    let date = new Date();
+    let date = this.selectedDate;
     date = this.dateAdapter.setHours(date, testHour);
     date = this.dateAdapter.setMinutes(date, config.minute);
     date = this.dateAdapter.setSeconds(date, config.second);
@@ -735,7 +745,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   }
 
   updateDateFromSelection(): Date {
-    if (!this.dateAdapter) return new Date();
+    if (!this.dateAdapter) return this.selectedDate;
 
     let hours = this.selectedTime.hour;
     if (this.timeFormat === '12') {
@@ -745,7 +755,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
     let date = this._value instanceof Date ? 
       this.dateAdapter.clone(this._value) : 
-      new Date();
+      this.selectedDate;
 
     date = this.dateAdapter.setHours(date, hours);
     date = this.dateAdapter.setMinutes(date, this.selectedTime.minute);

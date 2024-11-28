@@ -170,6 +170,16 @@
                                     </label>
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <label for="allowEmpty">Allow empty:</label>
+                                <div class="switch-container">
+                                    <input type="checkbox" [(ngModel)]="allowEmpty" (change)="updateCode()"
+                                        class="switch-checkbox" id="allowEmpty" />
+                                    <label class="switch-label" for="allowEmpty">
+                                        <span class="switch-button"></span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -193,8 +203,6 @@
                             [minDate]="minDate"
                             [mode]="mode"
                             [isInline]="isInline"
-                            [disabledDates]="disabledDates"
-                            [disabledDatesFilter]="disabledDatesFilter"
                             [(ngModel)]="selectedDate"
                             (ngModelChange)="onChange($event)"
                         >
@@ -206,6 +214,13 @@
                         <code>
                             {{ demoCode }}
                         </code>
+                    </div>
+                </div>
+                <div class="box">
+                    <h2>Disabled Dates Examples</h2>
+                    <p>This guide provides various examples of how to use the disabled dates functionality in the Qeydar Date Picker.</p>
+                    <div class="demo">
+                        <disabled-dates></disabled-dates>
                     </div>
                 </div>
             </div>
@@ -279,6 +294,16 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label for="allowEmpty">Allow empty:</label>
+                            <div class="switch-container">
+                                <input type="checkbox" [(ngModel)]="allowEmpty" (change)="updateCode()"
+                                    class="switch-checkbox" id="allowEmpty" />
+                                <label class="switch-label" for="allowEmpty">
+                                    <span class="switch-button"></span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="box" [dir]="rtl? 'rtl': 'ltr'">
@@ -294,7 +319,6 @@
                             [maxTime]="maxTime"
                             [inline]="isInline"
                             [disabled]="disabled"
-                            [disabledTimesFilter]="disabledTimesFilter"
                             [(ngModel)]="selectedTime"
                             (ngModelChange)="onChange($event)"
                         >

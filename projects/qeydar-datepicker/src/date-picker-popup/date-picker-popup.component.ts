@@ -136,6 +136,7 @@ import { NgFor, NgIf } from '@angular/common';
             [inline]="true"
             [disabledTimesFilter]="disabledTimesFilter"
             [cssClass]="'embedded-time-picker'"
+            [selectedDate]="selectedDate"
             (timeChange)="onTimeChange($event)"
           ></qeydar-time-picker>
         </div>

@@ -5,10 +5,12 @@ import { AppComponent } from './app.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { QeydarDatePickerModule } from 'projects/qeydar-datepicker/src/qeydar-datepicker.module';
+import { DisabledDates } from './demos/disabled/diabled-date';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    DisabledDates
   ],
   imports: [
     BrowserModule,
