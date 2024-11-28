@@ -54,7 +54,7 @@
   "bugs": {
     "url": "https://github.com/Abbasr7/qeydar-datepicker/issues"
   },
-  "homepage": "https://github.com/Abbasr7/qeydar-datepicker",
+  "homepage": "https://qeydar-datepicker-git-master-abbasr7s-projects.vercel.app/",
   "private": false,
   "exports": {
     "./styles.css": {
