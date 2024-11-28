@@ -350,9 +350,12 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
       this.selectedStartDate = updatedDate;
       this.dateRangeSelected.emit({ start: this.selectedStartDate, end: null });
     } else if (this.activeInput === 'end' && this.selectedEndDate) {
-      this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
       const updatedDate = this.applyTimeToDate(this.selectedEndDate, timeDate);
       this.selectedEndDate = updatedDate;
+      clearTimeout(this.timeoutId);
+      this.timeoutId = setTimeout(() => {
+        this.dateRangeSelected.emit({ start: this.selectedStartDate, end: this.selectedEndDate });
+      }, 300);
     }
   }
 
@@ -648,15 +651,39 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   }
 
   isYearDisabled(year: number): boolean {
+    
     if (this.minDate && this.dateAdapter.getYear(this.minDate) > year) return true;
     if (this.maxDate && this.dateAdapter.getYear(this.maxDate) < year) return true;
-    return false;
+
+    // Check if all months in year are disabled
+    const firstOfMonth = this.dateAdapter.createDate(year,0,1);
+    let day = 1;
+
+    for (
+      let date = firstOfMonth;
+      date.getFullYear() == firstOfMonth.getFullYear();
+      date = this.dateAdapter.addDays(firstOfMonth,day++)
+    ) {
+      if (!this.isDateDisabled(date)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   isYearRangeDisabled(yearRange: YearRange): boolean {
     if (this.minDate && this.dateAdapter.getYear(this.minDate) > yearRange.end) return true;
     if (this.maxDate && this.dateAdapter.getYear(this.maxDate) < yearRange.start) return true;
-    return false;
+
+    // Check if all years in range are disabled
+    for (let year = yearRange.start; year <= yearRange.end; year++) {
+      if (!this.isYearDisabled(year)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   isPrevMonthDisabled(): boolean {

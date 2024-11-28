@@ -331,6 +331,7 @@ export class AppComponent {
 | disabledDates     | Arrar<Date || string>    | undefined     | Array of Date and string to disable the entire day |
 | disabledDatesFilter | (date: Date) => boolean| undefined     | Function to determine if a date should be disabled |
 | disabledTimesFilter| (date: Date) => boolean | undefined     | Function to determine if a time of date should be disabled |
+| allowEmpty         | boolean                 | true          | Allow empty value |
 
 ### DatePicker Outputs
 | Output        | Type                  | Description |

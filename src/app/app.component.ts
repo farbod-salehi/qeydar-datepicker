@@ -2,7 +2,7 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { getMonth } from 'date-fns-jalali';
-import { CalendarType, DatepickerMode, RangeInputLabels, TimeValueType, ValueFormat } from 'projects/qeydar-datepicker/src/public-api';
+import { CalendarType, DatepickerMode, GregorianDateAdapter, JalaliDateAdapter, RangeInputLabels, TimeValueType, ValueFormat } from 'projects/qeydar-datepicker/src/public-api';
 
 @Component({
   selector: 'app-root',
@@ -65,8 +65,9 @@ export class AppComponent implements OnInit{
   disabledDatesFilter = (date: Date) => {
     const day = date.getFullYear();
     let month = getMonth(date);
+    let year = this.jalali.getYear(date);
 
-    return day === 2025; // Disable weekends
+    return year === 1406 || year === 1407; // Disable weekends
   };
   disabledTimes = [
     new Date(2024, 0, 1, 12, 0),  // Disable 12:00
@@ -94,6 +95,12 @@ export class AppComponent implements OnInit{
     time: new FormControl('17:17'),
     date: new FormControl('2024-09-29T00:00:00')
   });
+
+  /**
+   *
+   */
+  constructor(private jalali: JalaliDateAdapter, private gregorian: GregorianDateAdapter) {
+  }
 
   ngOnInit(): void {}
 

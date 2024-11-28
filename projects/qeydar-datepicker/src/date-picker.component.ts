@@ -297,6 +297,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() disabledDates: Array<Date | string> = [];
   @Input() disabledDatesFilter: (date: Date) => boolean;
   @Input() disabledTimesFilter: (date: Date) => boolean;
+  @Input() allowEmpty = false;
   @Input() set minDate(date: Date | string | null) {
     if (date) {
       this._minDate = date;
@@ -776,7 +777,13 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     if (typeof inputValue === 'string' && !this.isOpen) {
       const correctedValue = this.validateAndCorrectInput(inputValue);
       if (correctedValue !== inputValue) {
-        this.handleCorrectedValue(inputType, correctedValue);
+        if (inputValue) {
+          this.handleCorrectedValue(inputType, correctedValue);
+        } else if (!this.allowEmpty) {
+          this.handleCorrectedValue(inputType, correctedValue);
+        } else {
+          this.onChange(inputValue);
+        }
       }
       this.onBlur.emit({
         input: inputType,
@@ -799,7 +806,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
     let date = this.dateAdapter.parse(value, this.format);
     if (!date) {
       const today = this.dateAdapter.today();
-      date = this.minDate ? this.dateAdapter.max([today, this.minDate]) : today;
+      date = this.clampDate(today);
     } else {
       date = this.clampDate(date);
     }
