@@ -203,6 +203,7 @@
                             [minDate]="minDate"
                             [mode]="mode"
                             [isInline]="isInline"
+                            [allowEmpty]="allowEmpty"
                             [(ngModel)]="selectedDate"
                             (ngModelChange)="onChange($event)"
                         >
@@ -221,6 +222,13 @@
                     <p>This guide provides various examples of how to use the disabled dates functionality in the Qeydar Date Picker.</p>
                     <div class="demo">
                         <disabled-dates></disabled-dates>
+                    </div>
+                </div>
+                <div class="box">
+                    <h2>Custom Render</h2>
+                    <p></p>
+                    <div class="demo">
+                        <custom-render></custom-render>
                     </div>
                 </div>
             </div>

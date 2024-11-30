@@ -1,4 +1,4 @@
-import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject, AfterViewInit, ViewChildren, QueryList, NgZone, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, forwardRef, Input, OnInit, OnChanges, SimpleChanges, ViewChild, Output, EventEmitter, Renderer2, ChangeDetectorRef, Inject, AfterViewInit, ViewChildren, QueryList, NgZone, OnDestroy, ChangeDetectionStrategy, TemplateRef, ContentChildren } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormBuilder, FormGroup, AbstractControl, ValidationErrors, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { slideMotion } from './utils/animation/slide';
 import { DateAdapter, JalaliDateAdapter, GregorianDateAdapter } from './date-adapter';
@@ -11,6 +11,7 @@ import { DestroyService, QeydarDatePickerService } from './date-picker.service';
 import { fromEvent, takeUntil } from 'rxjs';
 import { CalendarType, DatepickerMode, Placement, RangePartType, ValueFormat } from './utils/types';
 import { DateMaskDirective } from './utils/input-mask.directive';
+import { CustomTemplate } from './utils/template.directive';
 
 @Component({
   selector: 'qeydar-date-picker',
@@ -124,6 +125,7 @@ import { DateMaskDirective } from './utils/input-mask.directive';
             [disabledDates]="disabledDates"
             [disabledDatesFilter]="disabledDatesFilter"
             [disabledTimesFilter]="disabledTimesFilter"
+            [templates]="templates"
             (dateSelected)="onDateSelected($event)"
             (dateRangeSelected)="onDateRangeSelected($event)"
             (closePicker)="close()"
@@ -334,10 +336,11 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Output() onChangeValue = new EventEmitter<any>();
   @Output() onOpenChange = new EventEmitter<boolean>();
 
-  // ========== ViewChild/ViewChildren Properties ==========
+  // ========== ViewChild/ViewChildren/ContentChildren Properties ==========
   @ViewChild('datePickerInput') datePickerInput: ElementRef;
   @ViewChildren('rangePickerInput') rangePickerInputs?: QueryList<ElementRef<HTMLInputElement>>;
   @ViewChild(DatePickerPopupComponent) datePickerPopup: DatePickerPopupComponent;
+  @ContentChildren(CustomTemplate) templates!: QueryList<CustomTemplate>;
 
   // ========== Class Properties ==========
   origin: CdkOverlayOrigin;
@@ -855,6 +858,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
         } else if (!this.allowEmpty) {
           this.handleCorrectedValue(inputType, correctedValue);
         } else {
+          this.selectedDate = null;
           this.onChange(inputValue);
         }
       }

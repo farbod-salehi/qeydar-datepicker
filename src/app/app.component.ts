@@ -28,7 +28,7 @@ import { CalendarType, DatepickerMode, GregorianDateAdapter, JalaliDateAdapter, 
   ]
 })
 export class AppComponent implements OnInit{
-  Version = '1.2.1';
+  Version = '1.2.2';
   isSidebarOpen = true;
   showPart = 'datepicker';
 

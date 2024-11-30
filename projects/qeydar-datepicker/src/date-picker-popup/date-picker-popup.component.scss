@@ -246,6 +246,7 @@ $text-color-disabled: #aaa;
     background: none;
     cursor: pointer;
     font-size: 14px;
+    position: relative;
 
     &.selected {
       background-color: $primary-color;

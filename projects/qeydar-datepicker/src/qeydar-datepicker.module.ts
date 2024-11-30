@@ -4,6 +4,7 @@ import { DatePickerPopupComponent } from './date-picker-popup/date-picker-popup.
 import { DateMaskDirective } from './utils/input-mask.directive';
 import { NzConnectedOverlayDirective } from './public-api';
 import { TimePickerComponent } from './time-picker/time-picker.component';
+import { CustomTemplate } from './utils/template.directive';
 
 @NgModule({
   imports: [
@@ -11,7 +12,8 @@ import { TimePickerComponent } from './time-picker/time-picker.component';
     DatePickerPopupComponent,
     DateMaskDirective,
     NzConnectedOverlayDirective,
-    TimePickerComponent
+    TimePickerComponent,
+    CustomTemplate
   ],
   exports: [
     DatePickerComponent,
@@ -19,6 +21,7 @@ import { TimePickerComponent } from './time-picker/time-picker.component';
     DatePickerPopupComponent,
     DateMaskDirective,
     NzConnectedOverlayDirective,
+    CustomTemplate
   ]
 })
 export class QeydarDatePickerModule { }

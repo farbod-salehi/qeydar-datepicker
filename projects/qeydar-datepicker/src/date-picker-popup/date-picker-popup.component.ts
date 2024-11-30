@@ -1,11 +1,12 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef, HostListener, OnDestroy, ChangeDetectionStrategy, TemplateRef, QueryList } from '@angular/core';
 import { DateAdapter, GregorianDateAdapter, JalaliDateAdapter } from '../date-adapter';
 import { CustomLabels, DateRange, Lang_Locale, YearRange } from '../utils/models';
 import { DestroyService, QeydarDatePickerService } from '../date-picker.service';
 import { CalendarType, DatepickerMode } from '../utils/types';
 import { TimePickerComponent } from '../time-picker/time-picker.component';
 import { takeUntil } from 'rxjs';
-import { NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
+import { CustomTemplate } from '../utils/template.directive';
 
 @Component({
   selector: 'qeydar-date-picker-popup',
@@ -14,6 +15,7 @@ import { NgFor, NgIf } from '@angular/common';
   imports: [
     NgIf,
     NgFor,
+    NgTemplateOutlet,
     TimePickerComponent
   ],
   template: `
@@ -97,7 +99,12 @@ import { NgFor, NgIf } from '@angular/common';
                 (click)="selectDate(day)"
                 (mouseenter)="onMouseEnter(day,$event)"
               >
-                {{ dateAdapter.getDate(day) }}
+                <ng-container *ngIf="dayTemplate; else dayDefTemplate">
+                  <ng-container *ngTemplateOutlet="$any(dayTemplate); context: { $implicit: day }"></ng-container>
+                </ng-container>
+                <ng-template #dayDefTemplate>
+                  {{ dateAdapter.getDate(day) }}
+                </ng-template>
               </button>
             </div>
           </div>
@@ -109,7 +116,12 @@ import { NgFor, NgIf } from '@angular/common';
               [disabled]="isMonthDisabled(month)"
               (click)="selectMonth(month,false)"
             >
-              {{ getMonthName(month) }}
+              <ng-container *ngIf="monthTemplate; else monthDefTemplate">
+                <ng-container *ngTemplateOutlet="$any(monthTemplate); context: { $implicit: month }"></ng-container>
+              </ng-container>
+              <ng-template #monthDefTemplate>
+                {{ getMonthName(month) }}
+              </ng-template>
             </button>
           </div>
           <div *ngIf="viewMode === 'years' || mode == 'year'" class="years">
@@ -120,7 +132,12 @@ import { NgFor, NgIf } from '@angular/common';
               [disabled]="isYearDisabled(year)"
               (click)="selectYear(year)"
             >
-              {{ year }}
+              <ng-container *ngIf="yearTemplate; else yearDefTemplate">
+                <ng-container *ngTemplateOutlet="$any(yearTemplate); context: { $implicit: year }"></ng-container>
+              </ng-container>
+              <ng-template #yearDefTemplate>
+                {{ year }}
+              </ng-template>
             </button>
           </div>
         </div>
@@ -177,6 +194,7 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   @Input() disabledDates: Array<Date | string> = [];
   @Input() disabledDatesFilter: (date: Date) => boolean;
   @Input() disabledTimesFilter: (date: Date) => boolean;
+  @Input() templates: QueryList<CustomTemplate>;
 
   // ========== Output Properties ==========
   @Output() dateSelected = new EventEmitter<Date>();
@@ -202,6 +220,10 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   viewMode: 'days' | 'months' | 'years' = 'days';
   lang: Lang_Locale;
   timeoutId: any = null;
+  dayTemplate: TemplateRef<any>;
+  monthTemplate: TemplateRef<any>;
+  quarterTemplate: TemplateRef<any>;
+  yearTemplate: TemplateRef<any>;
 
   // ========== Getters ==========
   public get getDate(): Date {
@@ -231,6 +253,26 @@ export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewIni
   ngAfterViewInit() {
     this.scrollToSelectedItem();
     this.setTimePickerDate();
+    this.templates.forEach((item) => {
+      switch (item.getType()) {
+          case 'day':
+              this.dayTemplate = item.template;
+              break;
+
+          case 'month':
+              this.monthTemplate = item.template;
+              break;
+
+          case 'quarter':
+              this.quarterTemplate = item.template;
+              break;
+
+          case 'year':
+              this.yearTemplate = item.template;
+              break;
+      }
+    });
+    this.cdr.markForCheck();
   }
 
   ngOnDestroy(): void {

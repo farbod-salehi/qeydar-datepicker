@@ -7,12 +7,14 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { QeydarDatePickerModule } from 'projects/qeydar-datepicker/src/qeydar-datepicker.module';
 import { DisabledDates } from './demos/disabled/diabled-date';
 import { DisabledTimes } from './demos/disabled/diabled-time';
+import { CustomRender } from './demos/custom-render';
 
 @NgModule({
   declarations: [
     AppComponent,
     DisabledDates,
-    DisabledTimes
+    DisabledTimes,
+    CustomRender
   ],
   imports: [
     BrowserModule,
