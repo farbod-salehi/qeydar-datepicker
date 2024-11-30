@@ -15,6 +15,7 @@ export * from './utils/models';
 export * from './utils/overlay/overlay';
 export * from './utils/animation/slide';
 export * from './utils/input-mask.directive';
+export * from './utils/template.directive';
 
 // Services
 export * from './date-picker.service';

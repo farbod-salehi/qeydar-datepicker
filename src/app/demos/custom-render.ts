@@ -1,6 +1,5 @@
 import { Component } from "@angular/core";
-import { JalaliDateAdapter } from "projects/qeydar-datepicker/src/date-adapter";
-import { GregorianDateAdapter } from "qeydar-datepicker";
+import { GregorianDateAdapter, JalaliDateAdapter } from "projects/qeydar-datepicker/src/date-adapter";
 
 
 @Component({
