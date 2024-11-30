@@ -180,6 +180,26 @@
                                     </label>
                                 </div>
                             </div>
+                            <div class="form-group">
+                                <label for="readOnly">readOnly:</label>
+                                <div class="switch-container">
+                                    <input type="checkbox" [(ngModel)]="readOnly" (change)="updateCode()"
+                                        class="switch-checkbox" id="readOnly" />
+                                    <label class="switch-label" for="readOnly">
+                                        <span class="switch-button"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="readOnlyInput">readOnlyInput:</label>
+                                <div class="switch-container">
+                                    <input type="checkbox" [(ngModel)]="readOnlyInput" (change)="updateCode()"
+                                        class="switch-checkbox" id="readOnlyInput" />
+                                    <label class="switch-label" for="readOnlyInput">
+                                        <span class="switch-button"></span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -204,6 +224,8 @@
                             [mode]="mode"
                             [isInline]="isInline"
                             [allowEmpty]="allowEmpty"
+                            [readOnly]="readOnly"
+                            [readOnlyInput]="readOnlyInput"
                             [(ngModel)]="selectedDate"
                             (ngModelChange)="onChange($event)"
                         >
@@ -225,8 +247,8 @@
                     </div>
                 </div>
                 <div class="box">
-                    <h2>Custom Render</h2>
-                    <p></p>
+                    <h2>Custom Templates</h2>
+                    <p>The DatePicker supports custom templates for days, months, and years using the <code>Template</code> directive.</p>
                     <div class="demo">
                         <custom-render></custom-render>
                     </div>
@@ -312,6 +334,26 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label for="readOnly">readOnly:</label>
+                            <div class="switch-container">
+                                <input type="checkbox" [(ngModel)]="readOnly" (change)="updateCode()"
+                                    class="switch-checkbox" id="readOnly" />
+                                <label class="switch-label" for="readOnly">
+                                    <span class="switch-button"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="readOnlyInput">readOnlyInput:</label>
+                            <div class="switch-container">
+                                <input type="checkbox" [(ngModel)]="readOnlyInput" (change)="updateCode()"
+                                    class="switch-checkbox" id="readOnlyInput" />
+                                <label class="switch-label" for="readOnlyInput">
+                                    <span class="switch-button"></span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="box" [dir]="rtl? 'rtl': 'ltr'">
@@ -327,6 +369,8 @@
                             [maxTime]="maxTime"
                             [inline]="isInline"
                             [disabled]="disabled"
+                            [readOnly]="readOnly"
+                            [readOnlyInput]="readOnlyInput"
                             [(ngModel)]="selectedTime"
                             (ngModelChange)="onChange($event)"
                         >

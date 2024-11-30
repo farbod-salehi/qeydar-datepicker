@@ -1,6 +1,6 @@
 {
   "name": "@qeydar/datepicker",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "A comprehensive Date and Time Picker for Angular with Jalali calendar support",
   "author": "Abbas Aghayari",
   "license": "MIT",
@@ -17,7 +17,8 @@
     "date",
     "calendar",
     "rangepicker",
-    "date-fns"
+    "date-fns",
+    "ng2 shamsi datepicker"
   ],
   "peerDependencies": {
     "@angular/common": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",

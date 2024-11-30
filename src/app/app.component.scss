@@ -103,26 +103,3 @@ body {
         background-color: #0056b3;
     }
 }
-
-
-/* Forms */
-.filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 20px;
-}
-
-.form-group {
-    margin: 5px;
-    display: flex;
-    flex-direction: column;
-}
-
-.range-labels {
-    display: flex;
-    gap: 15px;
-}
-
-.range-labels input {
-    max-width: 120px;
-}

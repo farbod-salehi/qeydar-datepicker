@@ -1,7 +1,6 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { getMonth } from 'date-fns-jalali';
 import { CalendarType, DatepickerMode, GregorianDateAdapter, JalaliDateAdapter, RangeInputLabels, TimeValueType, ValueFormat } from 'projects/qeydar-datepicker/src/public-api';
 
 @Component({
@@ -28,7 +27,7 @@ import { CalendarType, DatepickerMode, GregorianDateAdapter, JalaliDateAdapter, 
   ]
 })
 export class AppComponent implements OnInit{
-  Version = '1.2.2';
+  Version = '1.2.3';
   isSidebarOpen = true;
   showPart = 'datepicker';
 
@@ -58,6 +57,8 @@ export class AppComponent implements OnInit{
   timeDisplayFormat: string = 'HH:mm:ss';
   maxTime: string;
   minTime: string;
+  readOnly: boolean = false;
+  readOnlyInput: boolean = false;
 
   // examples
   demoCode: string;
@@ -70,7 +71,10 @@ export class AppComponent implements OnInit{
   /**
    *
    */
-  constructor(private jalali: JalaliDateAdapter, private gregorian: GregorianDateAdapter) {
+  constructor(
+    private jalali: JalaliDateAdapter,
+    private gregorian: GregorianDateAdapter
+  ) {
   }
 
   ngOnInit(): void {}
@@ -123,6 +127,8 @@ export class AppComponent implements OnInit{
         minDate: Date | string = ${this.minDate};
         maxDate: Date | string = ${this.maxDate};
         allowEmpty: boolean = ${this.allowEmpty};
+        readOnly: boolean = ${this.readOnly};
+        readOnlyInput: boolean = ${this.readOnlyInput};
     `;
 
     this.demoCode = `

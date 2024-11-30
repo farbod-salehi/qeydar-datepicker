@@ -41,6 +41,7 @@ import { DateMaskDirective } from '../utils/input-mask.directive';
             formControlName="timeInput"
             (focus)="onFocusInput()"
             [placeholder]="placeholder"
+            [readonly]="readOnly || readOnlyInput"
             [attr.disabled]="disabled? 'disabled':null"
           >
           <button *ngIf="showIcon" class="time-button" (click)="toggleTimePicker($event)" tabindex="-1">
@@ -205,6 +206,8 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
   @Input() disabled = false;
   @Input() disabledTimesFilter: (date: Date) => boolean;
   @Input() allowEmpty = true;
+  @Input() readOnly = false;
+  @Input() readOnlyInput = false;
   @Input() set displayFormat(value: string) {
     this._displayFormat = value;
     this.showSeconds = value.toLowerCase().includes('s');
@@ -487,7 +490,7 @@ export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDest
 
   // Picker operations
   open(): void {
-    if (this.inline || this.disabled) return;
+    if (this.inline || this.disabled || this.readOnly) return;
 
     const wasOpen = this.isOpen;
     this.isOpen = true;

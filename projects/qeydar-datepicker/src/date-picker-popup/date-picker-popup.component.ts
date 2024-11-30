@@ -159,8 +159,7 @@ import { CustomTemplate } from '../utils/template.directive';
         </div>
       </div>
       <div class="date-picker-footer" *ngIf="footerDescription || showTimePicker || showToday">
-        <div class="footer-description" *ngIf="footerDescription">
-          {{ footerDescription }}
+        <div class="footer-description" *ngIf="footerDescription" [innerHtml]="footerDescription">
         </div>
         <div class="footer-actions">
           <button *ngIf="showTimePicker" class="footer-button ok" (click)="onOkClick()">{{ lang.ok }}</button>

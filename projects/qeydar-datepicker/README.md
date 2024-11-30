@@ -38,6 +38,8 @@ This package includes two main components:
 - 🔄 Value format flexibility (string/Date object)
 - 🎯 Today button support
 - 🚫 Disabled dates support with custom filtering
+- 🎨 Custom templates for days, months, and years
+- 🔒 Read-only mode support
 
 ### TimePicker
 - ⏰ 12/24 hour format support
@@ -225,6 +227,69 @@ export class AppComponent {
 }
 ```
 
+### Custom Templates
+The DatePicker now supports custom templates for days, months, and years, allowing you to customize how these elements are rendered:
+
+```typescript
+@Component({
+  template: `
+    <qeydar-date-picker [(ngModel)]="selectedDate">
+      <!-- Custom day template -->
+      <ng-template qeydarTemplate="day" let-day>
+        <div class="custom-day">
+          {{ day.getDate() }}
+          <!-- Add custom indicators or styling -->
+          <span *ngIf="isSpecialDay(day)" class="special-indicator">*</span>
+        </div>
+      </ng-template>
+
+      <!-- Custom month template -->
+      <ng-template qeydarTemplate="month" let-month>
+        <div class="custom-month">
+          {{ getMonthName(month) }}
+          <!-- Add custom content -->
+        </div>
+      </ng-template>
+
+      <!-- Custom year template -->
+      <ng-template qeydarTemplate="year" let-year>
+        <div class="custom-year">
+          {{ year }}
+          <!-- Add custom styling or indicators -->
+        </div>
+      </ng-template>
+    </qeydar-date-picker>
+  `
+})
+export class AppComponent {
+  isSpecialDay(date: Date): boolean {
+    // Your custom logic
+    return date.getDate() === 1;
+  }
+}
+```
+
+### Read-only Mode
+The DatePicker now supports two types of read-only modes:
+
+```typescript
+@Component({
+  template: `
+    <!-- Completely read-only - prevents both input and calendar interaction -->
+    <qeydar-date-picker
+      [(ngModel)]="selectedDate"
+      [readOnly]="true"
+    ></qeydar-date-picker>
+
+    <!-- Read-only input but allows calendar interaction -->
+    <qeydar-date-picker
+      [(ngModel)]="selectedDate"
+      [readOnlyInput]="true"
+    ></qeydar-date-picker>
+  `
+})
+```
+
 ## TimePicker Usage
 
 The TimePicker is a separate component for time selection:
@@ -332,6 +397,8 @@ export class AppComponent {
 | disabledDatesFilter | (date: Date) => boolean| undefined     | Function to determine if a date should be disabled |
 | disabledTimesFilter| (date: Date) => boolean | undefined     | Function to determine if a time of date should be disabled |
 | allowEmpty         | boolean                 | true          | Allow empty value |
+| readOnly          | boolean                  | false         | Make the entire component read-only |
+| readOnlyInput     | boolean                  | false         | Make only the input field read-only |
 
 ### DatePicker Outputs
 | Output        | Type                  | Description |
@@ -361,6 +428,8 @@ export class AppComponent {
 | disabledTimesFilter| (date: Date) => boolean| undefined| Function to determine if a time should be disabled |
 | disabled           | boolean                | false   | Disable the time picker |
 | allowEmpty         | boolean                | true    | Allow empty value |
+| readOnly          | boolean                  | false         | Make the entire component read-only |
+| readOnlyInput     | boolean                  | false         | Make only the input field read-only |
 
 ### TimePicker Outputs
 

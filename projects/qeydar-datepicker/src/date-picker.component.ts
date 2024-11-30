@@ -35,6 +35,7 @@ import { CustomTemplate } from './utils/template.directive';
               (keydown)="onInputKeydown($event)"
               [class.focus]="isOpen"
               [placeholder]="getPlaceholder()"
+              [readonly]="readOnly || readOnlyInput"
               [attr.disabled]="disabled? 'disabled':null"
             >
             <ng-container *ngTemplateOutlet="icon"></ng-container>
@@ -63,6 +64,7 @@ import { CustomTemplate } from './utils/template.directive';
               (keydown)="onInputKeydown($event)"
               [class.focus]="isOpen && activeInput === 'start'"
               [placeholder]="getPlaceholder('start')"
+              [readonly]="readOnly || readOnlyInput"
               [attr.disabled]="disabled? 'disabled':null"
             >
             <span class="range-separator">→</span>
@@ -79,6 +81,7 @@ import { CustomTemplate } from './utils/template.directive';
               (keydown)="onInputKeydown($event)"
               [class.focus]="isOpen && activeInput === 'end'"
               [placeholder]="getPlaceholder('end')"
+              [readonly]="readOnly || readOnlyInput"
               [attr.disabled]="disabled? 'disabled':null"
             >
             <ng-container *ngTemplateOutlet="icon"></ng-container>
@@ -303,6 +306,8 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   @Input() disabledDatesFilter: (date: Date) => boolean;
   @Input() disabledTimesFilter: (date: Date) => boolean;
   @Input() allowEmpty = false;
+  @Input() readOnly = false;
+  @Input() readOnlyInput = false;
   @Input() set minDate(date: Date | string | null) {
     if (date) {
       this._minDate = date;
@@ -615,7 +620,7 @@ export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChan
   }
 
   open(): void {
-    if (this.isInline || this.isOpen || this.disabled) {
+    if (this.isInline || this.isOpen || this.disabled || this.readOnly) {
       return;
     }
     this.isOpen = true;
