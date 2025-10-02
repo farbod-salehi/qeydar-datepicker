@@ -107,7 +107,8 @@ import { GregorianDateAdapter, JalaliDateAdapter } from "projects/qeydar-datepic
             border-radius: 50%;
             background-color: #ff81a8;
         }
-    `]
+    `],
+    standalone: false
 })
 export class CustomRender {
     selectedDate: Date | string;

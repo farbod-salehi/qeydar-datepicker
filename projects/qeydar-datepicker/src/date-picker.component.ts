@@ -14,11 +14,10 @@ import { DateMaskDirective } from './utils/input-mask.directive';
 import { CustomTemplate } from './utils/template.directive';
 
 @Component({
-  selector: 'qeydar-date-picker',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
-  templateUrl: './date-picker.component.html',
-  styles: [`
+    selector: 'qeydar-date-picker',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    templateUrl: './date-picker.component.html',
+    styles: [`
     :host.qeydar-datepicker ::ng-deep {
       display: block;
       max-width: fit-content;
@@ -115,30 +114,30 @@ import { CustomTemplate } from './utils/template.directive';
       rotate: 180deg;
     }
   `],
-  host: {
-    "[class.qeydar-datepicker]": "true",
-    "[class.qeydar-datepicker-rtl]": "rtl"
-  },
-  imports: [
-    NgIf,
-    FormsModule,
-    ReactiveFormsModule,
-    OverlayModule,
-    NgTemplateOutlet,
-    NzConnectedOverlayDirective,
-    DateMaskDirective,
-    DatePickerPopupComponent
-  ],
-  providers: [
-    DestroyService,
-    QeydarDatePickerService,
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => DatePickerComponent),
-      multi: true
-    }
-  ],
-  animations: [slideMotion]
+    host: {
+        "[class.qeydar-datepicker]": "true",
+        "[class.qeydar-datepicker-rtl]": "rtl"
+    },
+    imports: [
+        NgIf,
+        FormsModule,
+        ReactiveFormsModule,
+        OverlayModule,
+        NgTemplateOutlet,
+        NzConnectedOverlayDirective,
+        DateMaskDirective,
+        DatePickerPopupComponent
+    ],
+    providers: [
+        DestroyService,
+        QeydarDatePickerService,
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => DatePickerComponent),
+            multi: true
+        }
+    ],
+    animations: [slideMotion]
 })
 export class DatePickerComponent implements ControlValueAccessor, OnInit, OnChanges, AfterViewInit, OnDestroy {
   // ========== Input Properties ==========

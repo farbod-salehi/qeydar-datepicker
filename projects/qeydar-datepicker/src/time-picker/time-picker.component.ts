@@ -23,9 +23,9 @@ import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
 import { DateMaskDirective } from '../utils/input-mask.directive';
 
 @Component({
-  selector: 'qeydar-time-picker',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
+    selector: 'qeydar-time-picker',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    template: `
     <div class="time-picker-wrapper" [formGroup]="form">
       <!-- Regular input mode -->
       <ng-container *ngIf="!inline">
@@ -166,29 +166,28 @@ import { DateMaskDirective } from '../utils/input-mask.directive';
       </ng-template>
     </div>
   `,
-  styleUrls: ['./time-picker.component.scss'],
-  standalone: true,
-  imports: [
-    NgIf,
-    NgFor,
-    ReactiveFormsModule,
-    NgTemplateOutlet,
-    DateMaskDirective,
-    OverlayModule,
-    NzConnectedOverlayDirective
-  ],
-  providers: [
-    QeydarDatePickerService,
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => TimePickerComponent),
-      multi: true
-    }
-  ],
-  host: {
-    '(click)': 'open()'
-  },
-  animations: [slideMotion]
+    styleUrls: ['./time-picker.component.scss'],
+    imports: [
+        NgIf,
+        NgFor,
+        ReactiveFormsModule,
+        NgTemplateOutlet,
+        DateMaskDirective,
+        OverlayModule,
+        NzConnectedOverlayDirective
+    ],
+    providers: [
+        QeydarDatePickerService,
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => TimePickerComponent),
+            multi: true
+        }
+    ],
+    host: {
+        '(click)': 'open()'
+    },
+    animations: [slideMotion]
 })
 export class TimePickerComponent implements ControlValueAccessor, OnInit, OnDestroy, OnChanges {
   @Input() placeholder?: string;

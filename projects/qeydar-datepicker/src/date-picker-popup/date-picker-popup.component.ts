@@ -9,16 +9,15 @@ import { NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
 import { CustomTemplate } from '../utils/template.directive';
 
 @Component({
-  selector: 'qeydar-date-picker-popup',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    NgIf,
-    NgFor,
-    NgTemplateOutlet,
-    TimePickerComponent
-  ],
-  template: `
+    selector: 'qeydar-date-picker-popup',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        NgIf,
+        NgFor,
+        NgTemplateOutlet,
+        TimePickerComponent
+    ],
+    template: `
     <div class="date-picker-popup" [class.rtl]="rtl" [class]="cssClass" tabindex="-1">
       <div class="date-picker-content">
         <ng-container *ngIf="showSidebar">
@@ -168,7 +167,7 @@ import { CustomTemplate } from '../utils/template.directive';
       </div>
     </div>
   `,
-  styleUrls: ['./date-picker-popup.component.scss']
+    styleUrls: ['./date-picker-popup.component.scss']
 })
 export class DatePickerPopupComponent implements OnInit, OnChanges, AfterViewInit, OnDestroy {
   // ========== Input Properties ==========

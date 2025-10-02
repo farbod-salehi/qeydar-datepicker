@@ -4,27 +4,28 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { CalendarType, DatepickerMode, GregorianDateAdapter, JalaliDateAdapter, RangeInputLabels, TimeValueType, ValueFormat } from 'projects/qeydar-datepicker/src/public-api';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'],
-  animations: [
-    trigger('slideInOut', [
-      state('in', style({
-        width: '250px',
-        opacity: 1,
-      })),
-      state('out', style({
-        width: '0',
-        display:'none'
-      })),
-      transition('in => out', [
-        animate('300ms ease-in-out')
-      ]),
-      transition('out => in', [
-        animate('300ms ease-in-out')
-      ]),
-    ])
-  ]
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.scss'],
+    animations: [
+        trigger('slideInOut', [
+            state('in', style({
+                width: '250px',
+                opacity: 1,
+            })),
+            state('out', style({
+                width: '0',
+                display: 'none'
+            })),
+            transition('in => out', [
+                animate('300ms ease-in-out')
+            ]),
+            transition('out => in', [
+                animate('300ms ease-in-out')
+            ]),
+        ])
+    ],
+    standalone: false
 })
 export class AppComponent implements OnInit{
   Version = '1.2.3';

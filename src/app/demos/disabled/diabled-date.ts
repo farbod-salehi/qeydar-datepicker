@@ -55,6 +55,7 @@ import { JalaliDateAdapter } from "projects/qeydar-datepicker/src/date-adapter";
             </code>
         </div>
     `,
+    standalone: false
 })
 export class DisabledDates {
     selectedDate: Date | string;

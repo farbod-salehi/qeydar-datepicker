@@ -21,6 +21,7 @@ import { JalaliDateAdapter } from "projects/qeydar-datepicker/src/date-adapter";
             </code>
         </div>
     `,
+    standalone: false
 })
 export class DisabledTimes {
     selectedDate: Date | string;
